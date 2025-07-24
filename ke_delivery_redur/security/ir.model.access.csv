@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_redur_sender_code,access.redur.sender.code,model_redur_sender_code,base.group_user,1,1,1,1
+access_redur_pickup_sheet,access.redur.pickup.sheet,model_redur_pickup_sheet,base.group_user,1,1,1,1

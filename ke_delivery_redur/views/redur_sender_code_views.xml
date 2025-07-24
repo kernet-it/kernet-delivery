@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+    <record id="view_redur_sender_code_tree" model="ir.ui.view">
+        <field name="name">view.redur.sender.code.tree</field>
+        <field name="model">redur.sender.code</field>
+        <field name="type">tree</field>
+        <field name="mode">primary</field>
+        <field name="priority" eval="16" />
+        <field name="active" eval="True" />
+        <field name="arch" type="xml">
+            <tree create="0" delete="0" edit="0">
+                <field name="name" optional="show" />
+                <field name="sender_code" optional="show" />
+                <field name="client_id" optional="show" />
+                <field name="default" optional="show" />
+                <field name="address" optional="show" />
+                <field name="city" optional="show" />
+                <field name="postal_code" optional="show" />
+                <field name="province" optional="show" />
+                <field name="country_code" optional="show" />
+            </tree>
+        </field>
+    </record>
+
+
+    <record id="view_redur_sender_code_form" model="ir.ui.view">
+        <field name="name">view.redur.sender.code.form</field>
+        <field name="model">redur.sender.code</field>
+        <field name="type">form</field>
+        <field name="mode">primary</field>
+        <field name="priority" eval="16" />
+        <field name="active" eval="True" />
+        <field name="arch" type="xml">
+            <form create="0" delete="0" edit="0">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name" />
+                            <field name="sender_code" />
+                            <field name="client_id" />
+                            <field name="default" />
+                        </group>
+
+                        <group>
+                            <field name="address" />
+                            <field name="city" />
+                            <field name="postal_code" />
+                            <field name="province" />
+                            <field name="country_code" />
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+
+</odoo>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+     <record id="ke_delivery_redur_view_delivery_carrier_form" model="ir.ui.view">
+        <field name="model">delivery.carrier</field>
+        <field name="inherit_id" ref="delivery.view_delivery_carrier_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//notebook/page[1]" position='before'>
+                <page string="REDUR Configuration" invisible="delivery_type != 'redur'">
+                    <group>
+                        <group>
+                            <field
+                                name="redur_username"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+                            <field
+                                name="redur_password"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+                            <field
+                                name="redur_client_id"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+                            <label for="redur_sender_code_id" />
+                            <div>
+                                <field
+                                    name="redur_sender_code_id"
+                                    invisible="not redur_username or not redur_password"
+                                    required="delivery_type == 'redur' and prod_environment"
+                                    options="{'no_create': True}"
+                                />
+                                <button
+                                    type="object"
+                                    class="oe_link"
+                                    name="redur_get_sender_code"
+                                    string="Get Sender Code"
+                                    help="Fetch the sender code from REDUR"
+                                    invisible="not redur_username or not redur_password"
+                                />
+                            </div>
+
+                        </group>
+
+                        <group>
+                            <field
+                                name="redur_product_line"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+                            <field
+                                name="redur_payment_type"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+                            <field
+                                name="redur_service_type"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+
+                            <field
+                                name="redur_printer_type"
+                                required="delivery_type == 'redur' and prod_environment"
+                            />
+
+                        </group>
+                    </group>
+                </page>
+                <page string="REDUR PickUp Sheets" invisible="delivery_type != 'redur'">
+                    <field name="redur_pickup_sheet_ids">
+                        <tree create="0" edit="0">
+                            <field name="date" />
+                            <field name="name" />
+                            <field name="file_name" invisible="1" />
+                            <field name="file" widget="binary" filename="file_name" />
+                        </tree>
+                    </field>
+                </page>
+            </xpath>
+
+            <xpath expr="//button[@name='toggle_prod_environment']" position="before">
+                <button
+                    name="redur_send_shipments"
+                    string="REDUR PickUp Sheet"
+                    type="object"
+                    class="oe_stat_button"
+                    icon="fa-file-text-o"
+                    invisible="delivery_type != 'redur'"
+                />
+            </xpath>
+
+        </field>
+    </record>
+
+</odoo>

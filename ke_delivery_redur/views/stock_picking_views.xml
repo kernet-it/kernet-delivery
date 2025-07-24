@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<odoo>
+
+     <record id="ke_delivery_redur_view_picking_form" model="ir.ui.view">
+        <field name="model">stock.picking</field>
+        <field
+            name="inherit_id"
+            ref="stock_delivery.view_picking_withcarrier_out_form"
+        />
+        <field name="arch" type="xml">
+
+            <xpath expr="//header" position='inside'>
+                <button
+                    name="redur_get_label"
+                    string="REDUR Label"
+                    type="object"
+                    invisible="state != 'done' or delivery_type != 'redur'"
+                />
+
+                <field name="redur_shipment_state" invisible="1" />
+
+                <button
+                    name="redur_toggle_retain_shipment"
+                    string="REDUR Retain Shipment"
+                    type="object"
+                    invisible="state != 'done' or delivery_type != 'redur' or redur_shipment_state != '1'"
+                />
+
+                <button
+                    name="redur_toggle_retain_shipment"
+                    string="REDUR Release Shipment"
+                    type="object"
+                    invisible="state != 'done' or delivery_type != 'redur' or redur_shipment_state != '2'"
+                />
+
+
+            </xpath>
+        </field>
+    </record>
+
+    <record id="ke_delivery_redur_view_picking_withcarrier_out_form" model="ir.ui.view">
+        <field name="model">stock.picking</field>
+        <field
+            name="inherit_id"
+            ref="delivery_state.view_picking_withcarrier_out_form"
+        />
+        <field name="arch" type="xml">
+
+
+            <xpath expr="//field[@name='tracking_state']" position="after">
+                <field
+                    name="redur_shipment_state"
+                    invisible="delivery_type != 'redur'"
+                />
+                <field
+                    name="redur_shipment_location"
+                    invisible="delivery_type != 'redur'"
+                />
+            </xpath>
+        </field>
+    </record>
+
+
+    <record id="ke_delivery_redur_view_picking_gls_form" model="ir.ui.view">
+        <field name="model">stock.picking</field>
+        <field name="inherit_id" ref="stock.view_picking_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='note']" position="after">
+                <field
+                    name="redur_shipping_notes"
+                    placeholder="Notas para REDUR"
+                    invisible="delivery_type != 'redur'"
+                />
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
