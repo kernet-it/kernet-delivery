@@ -263,9 +263,12 @@ class DeliveryCarrier(models.Model):
 
     def redur_get_label(self, picking):
         redur_request = RedurRequest(self)
-        # Forzamos siempre a tipo L para que sea un PDF
+        if not self.redur_printer_type == "L":
+            raise UserError(
+                _("Label generation is only supported for printer type 'L'.")
+            )
         values = {
-            "printerType": "L",
+            "printerType": self.redur_printer_type,
             "trackingNumber": picking.carrier_tracking_ref,
             "linkForDownload": False,
         }

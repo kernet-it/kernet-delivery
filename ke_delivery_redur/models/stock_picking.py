@@ -21,12 +21,14 @@ class StockPicking(models.Model):
         self.ensure_one()
         if self.delivery_type != "redur" or not self.carrier_tracking_ref:
             return
-        pdf = self.carrier_id.redur_get_label(self)
-        label_name = f"redur_{self.carrier_tracking_ref}.pdf"
-        self.message_post(
-            body=(_("REDUR label for %s") % self.carrier_tracking_ref),
-            attachments=[(label_name, pdf)],
-        )
+        if self.carrier_id.redur_printer_type == "L":
+            pdf = self.carrier_id.redur_get_label(self)
+            if pdf:
+                label_name = f"redur_{self.carrier_tracking_ref}.pdf"
+                self.message_post(
+                    body=(_("REDUR label for %s") % self.carrier_tracking_ref),
+                    attachments=[(label_name, pdf)],
+                )
 
     def redur_toggle_retain_shipment(self):
         self.ensure_one()
