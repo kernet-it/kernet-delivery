@@ -197,10 +197,13 @@ class DeliveryCarrier(models.Model):
             result.append(values)
             labels = response.get("labels")
             picking.redur_shipment_state = "1"
-            if labels and self.redur_printer_type == "L":
+            label_format = "pdf" if self.redur_printer_type == "L" else "txt"
+            if labels:
                 attachment = [
                     (
-                        "redur_label_{}.pdf".format(response.get("trackingNumber")),
+                        "redur_label_{}.{}".format(
+                            response.get("trackingNumber"), label_format
+                        ),
                         base64.b64decode(labels),
                     )
                 ]
@@ -263,10 +266,6 @@ class DeliveryCarrier(models.Model):
 
     def redur_get_label(self, picking):
         redur_request = RedurRequest(self)
-        if not self.redur_printer_type == "L":
-            raise UserError(
-                _("Label generation is only supported for printer type 'L'.")
-            )
         values = {
             "printerType": self.redur_printer_type,
             "trackingNumber": picking.carrier_tracking_ref,
