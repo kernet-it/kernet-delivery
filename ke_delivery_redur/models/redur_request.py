@@ -1,7 +1,11 @@
+import logging
+
 import requests
 
 from odoo import _
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 REDUR_PROD_URL = "https://serviciosweb.redur.es/RedurWS/shipments"
 REDUR_TEST_URL = "https://serviciosweb.redur.es/RedurWSTest/shipments"
@@ -35,6 +39,7 @@ class RedurRequest:
                 res = requests.get(url=url, headers=headers, timeout=60)
             elif request_type == "POST":
                 res = requests.post(url=url, json=data, headers=headers, timeout=60)
+                _logger.info("POST request sent to REDUR (%s) with data: %s", url, data)
             else:
                 raise UserError(
                     _("Unsupported request type, please only use 'GET' or 'POST'")
