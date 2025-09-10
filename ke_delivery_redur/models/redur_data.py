@@ -28,11 +28,11 @@ PRINTER_TYPE = [
 
 # Los estados en los que se puede encontrar un envío documentado son los siguientes:
 SHIPMENT_STATE = [
-    ("1", " Pendiente"),
-    ("2", " Retenida"),
-    ("4", " Descuadrada"),
-    ("5", " Validada"),
-    ("6", " Transmitida"),
+    ("1", "Pendiente"),
+    ("2", "Retenida"),
+    ("4", "Descuadrada"),
+    ("5", "Validada"),
+    ("6", "Transmitida"),
 ]
 
 # Las situaciones en las que se puede encontrar un envío,

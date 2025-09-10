@@ -1,0 +1,892 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* ke_delivery_redur
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 17.0+e\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-09-10 07:29+0000\n"
+"PO-Revision-Date: 2025-09-10 07:29+0000\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: \n"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_state__4
+msgid "Descuadrada"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_state__1
+msgid "Pendiente"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_state__2
+msgid "Retenida"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_state__6
+msgid " Transmitida"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_state__5
+msgid " Validada"
+msgstr ""
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/redur_request.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/redur_request.py:0
+#, python-format
+msgid ""
+"%(error)s\n"
+"%(message)s"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ant
+msgid "ANULADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__active
+msgid "Active"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__address
+msgid "Address"
+msgstr "Dirección"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__address
+msgid "Address associated with the sender code."
+msgstr "Dirección asociada con el código de remitente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__baj
+msgid "BAJA – (Cancelado)"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__cti
+msgid "CARGA CAMION T. INTERNACIONAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ctn
+msgid "CARGA CAMION T.NACIONAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i03
+msgid "CERRADO HASTA NUEVA ORDEN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i02
+msgid "CERRADO TEMPORAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i50
+msgid "CERRADO, REAL DECRETO COVID19"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i35
+msgid "CONSIGNATARIO NO ACEPTA ENTREGAS PARCIALES"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i13
+msgid "CONTENEDOR NO EMBARCADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__carrier_id
+msgid "Carrier"
+msgstr "Transportista"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_pickup_sheet__carrier_id
+msgid "Carrier associated with the pickup sheet"
+msgstr "Transportista asociado con la hoja de recogida"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__city
+msgid "City"
+msgstr "Ciudad"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__city
+msgid "City associated with the sender code."
+msgstr "Ciudad asociada con el código de remitente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__client_id
+msgid "Client ID"
+msgstr "ID de Cliente"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__client_id
+msgid "Client ID associated with this sender code."
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__country_code
+msgid "Country Code"
+msgstr "Código de País"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__country_code
+msgid "Country code associated with the sender code."
+msgstr "Código de país asociado con el código de remitente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__create_uid
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__create_uid
+msgid "Created by"
+msgstr "Creado por"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__create_date
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__create_date
+msgid "Created on"
+msgstr "Creado el"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_sender_code_id
+msgid ""
+"Código de remitente proporcionado por REDUR.Puede existir uno o varios "
+"códigos de remitentes,creados por dirección de recogida, por cuentas "
+"defacturación o por otros motivos. "
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_client_id
+msgid ""
+"Código del cliente del cuál se quieren imprimir etiquetas. Si no se "
+"introduce este valor se utilizará el código de cliente asociado al usuario "
+"en caso de solo tener un cliente"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_product_line
+msgid ""
+"Código proporcionado por REDUR. Puede ser uncampo fijo, o puede tener "
+"valores distintos en cadaexpedición, en función del destino, del tipo de "
+"envío… "
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i09
+msgid "DEPOSITO CON ENTREGAS PARCIALES / TOTALES"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i04
+msgid "DESTINATARIO AUSENTE"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i07
+msgid "DESTINATARIO NO ACEPTA PORTES DEBIDOS"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i06
+msgid "DESTINATARIO NO ACEPTA REEMBOLSO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i05
+msgid "DESTINATARIO NO DISPONE DE EFECTIVO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__dop
+msgid "DEVOLUCION ORIG. PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__dev
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__dot
+msgid "DEVOLUCION ORIGEN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i01
+msgid "DIRECCIÓN INCORRECTA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__doc
+msgid "DOCUMENTACION"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i12
+msgid "DOCUMENTACIÓN DE ADUANAS NO CONFORME"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__not
+msgid "DOCUMENTADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__date
+msgid "Date"
+msgstr "Fecha"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_payment_type__d
+msgid "Debidos o pagados por el consignatario"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__default
+msgid "Default Sender Code"
+msgstr "Código de Remitente Predeterminado"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__display_name
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__display_name
+msgid "Display Name"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__det
+msgid "EN DESTINO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__dep
+msgid "EN DESTINO PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__trp
+msgid "EN TRANSITO PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ead
+msgid "ENTRADA ADUANADAS"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__trd
+msgid "ENTRADA PLAZA DESTINO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__tro
+msgid "ENTRADA PLAZA ORIGEN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__trt
+msgid "ENTRADA PLAZA TRANSITO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__egs
+msgid "ENTRADA ZONA G.SUPERFICIE"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__eyd
+msgid "ENTRAGADO DEVUELTO A ORIGEN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ent
+msgid "ENTREGA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ert
+msgid "ENTREGA RECADERO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__erp
+msgid "ENTREGA RECADERO PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__enp
+msgid "ENTREGADO PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_service_type__e
+msgid "Ecommerce"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_service_type__i
+msgid ""
+"Envíos Internacionales, (resto de países de los considerados Urgente). "
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_product_line__002
+msgid "Envíos Menorca e Ibiza"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_service_type__u
+msgid ""
+"Envíos Urgentes, esto es envíos a España, Protugal, Andorra o Gibraltar."
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_service_type__t
+msgid "Envíos de Temperatura Controlada"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_service_type__f
+msgid "Envíos por avión a Canarias y Madeira"
+msgstr ""
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid ""
+"Error creating shipment in Redur:\n"
+"%s"
+msgstr "Error al crear el envío en Redur:\n%s"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i28
+msgid "FALTA ALBARÁN DEL REMITENTE"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i27
+msgid "FALTA NÚMERO DE DEVOLUCIÓN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__fet
+msgid "FECHA CONCERTADA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__fec
+msgid "FECHA DE ENTREGA CONCERTADA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i10
+msgid "FESTIVO LOCAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i16
+msgid "FUERZA MAYOR"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_delivery_carrier_form
+msgid "Fetch the sender code from REDUR"
+msgstr "Obtener el código de remitente de REDUR"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__file
+msgid "File"
+msgstr "Archivo"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__file_name
+msgid "File Name"
+msgstr "Nombre del Archivo"
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_delivery_carrier_form
+msgid "Get Sender Code"
+msgstr "Obtener Código de Remitente"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_password
+msgid ""
+"Hash de la contraseña proporcionada por REDUR para este usuario y cliente"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__id
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__id
+msgid "ID"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__int
+msgid "INCIDENCIA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__active
+msgid "Indicates if the sender code is active."
+msgstr "Indica si el código de remitente está activo."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__default
+msgid "Indicates if this sender code is the default for the client."
+msgstr "Indica si este código de remitente es el predeterminado para el cliente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_printer_type__l
+msgid "Laser (devuelve un PDF)"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__write_uid
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__write_uid
+msgid "Last Updated by"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__write_date
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__write_date
+msgid "Last Updated on"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i19
+msgid "MERCANCÍA NO RECOGIDA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__name
+msgid "Name"
+msgstr "Nombre"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid "No sender codes found for the current user in Redur."
+msgstr "No se han encontrado códigos de remitente para el usuario actual en Redur."
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_picking_form
+msgid "Notas para REDUR"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__pen
+msgid "PENDIENTE"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i14
+msgid "PENDIENTE DE FECHA CONCERTADA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_payment_type__p
+msgid "Pagados por el remitente"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_pickup_sheet__date
+msgid "Pickup sheet creation date"
+msgstr "Fecha de creación de la hoja de recogida"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_pickup_sheet__file
+msgid "Pickup sheet file in PDF format"
+msgstr "Archivo de la hoja de recogida en formato PDF"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_pickup_sheet__name
+msgid "Pickup sheet identifier"
+msgstr "Identificador de la hoja de recogida"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__postal_code
+msgid "Postal Code"
+msgstr "Código Postal"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__postal_code
+msgid "Postal code associated with the sender code."
+msgstr "Código postal asociado con el código de remitente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__delivery_type
+msgid "Provider"
+msgstr "Proveedor"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__province
+msgid "Province"
+msgstr "Provincia"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__province
+msgid "Province associated with the sender code."
+msgstr "Provincia asociada con el código de remitente."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i33
+msgid "RECHAZADO, OTRA FECHA DE ENTREGA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i34
+msgid "RECHAZADO, OTROS MOTIVOS"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i32
+msgid "RECHAZADO, PEDIDO ANULADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i30
+msgid "RECHAZO, NO PEDIDO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i31
+msgid "RECHAZO, POR INVENTARIO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i08
+msgid "RECOGERÁN EN AGENCIA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__rec
+msgid "RECOGIDA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i11
+msgid "RECOGIDA FUERA DEL HORARIO PACTADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__rep
+msgid "RECOGIDA PARCIAL"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__delivery_type__redur
+msgid "REDUR"
+msgstr ""
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid ""
+"REDUR API doesn't provide methods to compute delivery rates, so\n"
+"                you should rely on another price method instead or override this\n"
+"                one in your custom code."
+msgstr "La API de REDUR no proporciona métodos para calcular tarifas de entrega, por lo que\n"
+"                debes confiar en otro método de precios en su lugar o anular este\n"
+"                en tu código personalizado."
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_delivery_carrier_form
+msgid "REDUR Configuration"
+msgstr "Configuración de REDUR"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid "REDUR Expedition with reference %s cancelled"
+msgstr "Expedición de REDUR con referencia %s cancelada."
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_delivery_carrier_form
+msgid "REDUR PickUp Sheet"
+msgstr "Hoja de Recogida de REDUR"
+
+#. module: ke_delivery_redur
+#: model_terms:ir.ui.view,arch_db:ke_delivery_redur.ke_delivery_redur_view_delivery_carrier_form
+msgid "REDUR PickUp Sheets"
+msgstr "Hojas de Recogida de REDUR"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_stock_picking__redur_shipping_notes
+msgid "REDUR Shipping Notes"
+msgstr "Notas de Envío de REDUR"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/stock_picking.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/stock_picking.py:0
+#, python-format
+msgid "REDUR label for %s"
+msgstr "Etiqueta de REDUR para %s"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i23
+msgid "RESERVA BULT/S SIN ETIQUETA"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i22
+msgid "RESERVA BULTO/S ABIERTO/S"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i21
+msgid "RESERVA BULTO/S DAÑADO/S"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i20
+msgid "RESERVA DE BULTO/S SIN EMBALAR"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i26
+msgid "RETENER POR ORDEN DEL CLIENTE"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i29
+msgid "RETENER, SERVICIO DE REEMBOLSO NO AUTORIZADO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__i15
+msgid "RETRASO EN ADUANAS"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_client_id
+msgid "Redur Client"
+msgstr "Cliente de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_password
+msgid "Redur Password"
+msgstr "Contraseña de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_payment_type
+msgid "Redur Payment Type"
+msgstr "Tipo de Pago de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model,name:ke_delivery_redur.model_redur_pickup_sheet
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_pickup_sheet_ids
+msgid "Redur Pickup Sheet"
+msgstr "Hoja de Recogida de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_printer_type
+msgid "Redur Printer Type"
+msgstr "Tipo de Impresora de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_product_line
+msgid "Redur Product Line"
+msgstr "Línea de Producto de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model,name:ke_delivery_redur.model_redur_sender_code
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_sender_code_id
+msgid "Redur Sender Code"
+msgstr "Código de Remitente de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_service_type
+msgid "Redur Service Type"
+msgstr "Tipo de Servicio de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_stock_picking__redur_shipment_location
+msgid "Redur Shipment Location"
+msgstr "Ubicación de Envío de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_stock_picking__redur_shipment_state
+msgid "Redur Shipment State"
+msgstr "Estado del Envío de Redur"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_delivery_carrier__redur_username
+msgid "Redur Username"
+msgstr "Nombre de Usuario de Redur"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid "Redur label for shipment %s"
+msgstr "Etiqueta de Redur para el envío %s"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__erc
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__srp
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__srt
+msgid "SALIDA A REPARTO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__sad
+msgid "SALIDA ADUANAS"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__cto
+msgid "SALIDA PLAZA ORIGEN"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__ctt
+msgid "SALIDA PLAZA TRANSITO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_printer_type__s
+msgid "SATO (devuelve la etiqueta en formato SBPL)"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_product_line__003
+msgid "Salidas Llegadas Navarra"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_product_line__001
+msgid "Salidas Llegadas Palma y Formentera"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_sender_code__sender_code
+msgid "Sender Code"
+msgstr ""
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/redur_request.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/redur_request.py:0
+#, python-format
+msgid "Server not reachable, please try again later"
+msgstr "Servidor no accesible, por favor intente más tarde"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,field_description:ke_delivery_redur.field_redur_pickup_sheet__name
+msgid "Sheet Id"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model,name:ke_delivery_redur.model_delivery_carrier
+msgid "Shipping Methods"
+msgstr "Métodos de envío"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__stock_picking__redur_shipment_location__tra
+msgid "TRANSITO"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_stock_picking__redur_shipment_location
+msgid "The situations in which a shipment and its packages can be found."
+msgstr "Las situaciones en las que se puede encontrar un envío y sus bultos."
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_stock_picking__redur_shipment_state
+msgid "The states in which a documented shipment can be found"
+msgstr "Los estados en los que se puede encontrar un envío documentado"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/redur_request.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/redur_request.py:0
+#, python-format
+msgid "Timeout: the server did not reply within 60s"
+msgstr "Tiempo de espera: el servidor no respondió en 60s"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_payment_type
+msgid "Tipo de Portes del envío. "
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_printer_type
+msgid ""
+"Tipo de etiquetadora/impresora. Dependiendo de lamisma se devolverá la "
+"etiqueta utilizando lassecuencias de control del lenguaje de la misma. "
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_service_type
+msgid ""
+"Tipo de servicio o identificador de las características de los envíos dentro"
+" de la red de REDUR."
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_printer_type__t
+msgid "Toshiba (devuelve la etiqueta en formato TOSHIBA)"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model,name:ke_delivery_redur.model_stock_picking
+msgid "Transfer"
+msgstr "Traslado"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_redur_sender_code__sender_code
+msgid "Unique code for the sender, provided by Redur."
+msgstr "Código único para el remitente, proporcionado por Redur."
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/delivery_carrier.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/delivery_carrier.py:0
+#, python-format
+msgid "Unknown error"
+msgstr "Error desconocido"
+
+#. module: ke_delivery_redur
+#. odoo-python
+#: code:addons/ke_delivery_redur/models/redur_request.py:0
+#: code:addons/kernet-delivery/ke_delivery_redur/models/redur_request.py:0
+#, python-format
+msgid "Unsupported request type, please only use 'GET' or 'POST'"
+msgstr "Tipo de solicitud no soportado, por favor use solo 'GET' o 'POST'"
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields,help:ke_delivery_redur.field_delivery_carrier__redur_username
+msgid "Usuario proporcionado por REDUR y que pertenece al cliente"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_printer_type__z
+msgid "Zebra (devuelve la etiqueta en lenguaje EPL)"
+msgstr ""
+
+#. module: ke_delivery_redur
+#: model:ir.model.fields.selection,name:ke_delivery_redur.selection__delivery_carrier__redur_printer_type__p
+msgid "Zebra (devuelve la etiqueta en lenguaje ZPL)"
+msgstr ""
