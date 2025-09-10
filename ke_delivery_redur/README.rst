@@ -21,13 +21,10 @@ Configuration
 
 To use this module, you need to:
 
-#. Go to *Inventory > Configuration > Delivery > Delivery Methods* and
-  create a new one.
+#. Go to *Inventory > Configuration > Delivery > Delivery Methods* and create a new one.
 #. Choose *REDUR* as the provider.
-#. Configure the service data you have contracted and the shipping product
-  you want to use.
-#. The Reur sender code is get directly from the API, click on the button
-  "Get Sender Code" to fetch it.
+#. Configure the service data you have contracted and the shipping product you want to use.
+#. The Reur sender code is get directly from the API, click on the button "Get Sender Code" to fetch it.
 
 Usage
 =====
