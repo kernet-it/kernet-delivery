@@ -8,14 +8,13 @@ class StockPicking(models.Model):
 
     redur_shipment_state = fields.Selection(
         selection=SHIPMENT_STATE,
-        help="Los estados en los que se puede encontrar un envío documentado",
+        help="The states in which a documented shipment can be found",
     )
     redur_shipment_location = fields.Selection(
         selection=SHIPMENT_LOCATION,
-        help="Las situaciones en las que se puede encontrar un envío, "
-        "así como sus bultos.",
+        help="The situations in which a shipment and its packages can be found.",
     )
-    redur_shipping_notes = fields.Text(string="Notas de envío REDUR")
+    redur_shipping_notes = fields.Text(string="REDUR Shipping Notes")
 
     def redur_get_label(self):
         self.ensure_one()

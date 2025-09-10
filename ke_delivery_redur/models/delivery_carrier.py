@@ -139,10 +139,10 @@ class DeliveryCarrier(models.Model):
         }
 
     def _prepare_redur_send_shipping_values(self, picking):
-        # TODO Es obligatorio rellenar al menos uno de los campos:
-        # packages, pallets, longPackages o irregularPackages
-        # con un valor mayor que cero.
-        # Por ahora solo pasamos el numero de paquetes.
+        # TODO At least one of the following fields is required:
+        # packages, pallets, longPackages or irregularPackages
+        # with a value greater than zero.
+        # For now, we only pass the number of packages.
         consignee = picking.partner_id
         values = {
             "senderCode": self.redur_sender_code_id.sender_code or "",
@@ -156,7 +156,7 @@ class DeliveryCarrier(models.Model):
             "weight": round(
                 picking.shipping_weight, 1
             ),  # 8 digits: 7 before the decimal and 1 after
-            "volume": 0.01,  # recomendable que informen por defecto el valor de 0.01
+            # it is recommended to set the default value to 0.01
             "consigneeName": consignee.name,
             "consigneeAddress": escape(consignee.street or ""),
             "consigneeCity": escape(consignee.city or ""),
@@ -164,24 +164,24 @@ class DeliveryCarrier(models.Model):
             "consigneeProvince": escape(consignee.state_id.name or ""),
             "consigneeCountry": consignee.country_id.code_numeric,
             "additionalClientInformation": "",
-            "saveConsignee": 0,  # No se guarda el destinatario
-            "packages": picking.number_of_packages or 1,  # Leer TODO
-            "pallets": "",  # Leer TODO
-            "longPackages": "",  # Leer TODO
-            "irregularPackages": "",  # Leer TODO
+            "saveConsignee": 0,
+            "packages": picking.number_of_packages or 1,  # See TODO
+            "pallets": "",  # See TODO
+            "longPackages": "",  # See TODO
+            "irregularPackages": "",  # See TODO
             "exceptedPackages": "",
             "contactPerson": consignee.name,
-            # Email del destinatario para envío de avisos.
-            # Este servicio debe activarse vía comercial
+            # Recipient's email for sending notifications.
+            # This service must be activated commercially with REDUR
             "contactEmail": consignee.email,
-            "contactSMS": "",  # Este servicio debe activarse vía comercial.
+            # This service must be commercially activated with REDUR
             "comments": picking.redur_shipping_notes,
-            # comments2: Colocamos el telefono del destinatario por recomendación,
-            # para que salga en la etiqueta
+            # comments2: We include the recipient's phone number as recommended,
+            # so it appears on the label
             "comments2": consignee.phone or consignee.mobile,
             "comments3": "",
-            "linkForDownload": False,  # False – Devuelve las etiquetas en BASE64,
-            # True – Devuelve un link de enlace a las etiquetas
+            "linkForDownload": False,  # False – Returns the labels in BASE64,
+            # True – Returns a link to download the labels
         }
         return values
 
@@ -248,7 +248,7 @@ class DeliveryCarrier(models.Model):
 
     def _redur_update_shipment_location(self, picking):
         redur_request = RedurRequest(self)
-        # searchBy opciones: EXPEDICION | SU_REFERENCIA | SU_REFERENCIA2 | REF_INTERNACIONAL | REF_COLABORADOR | NTRACKING | REF_AGRUP # noqa
+        # searchBy Options: EXPEDICION | SU_REFERENCIA | SU_REFERENCIA2 | REF_INTERNACIONAL | REF_COLABORADOR | NTRACKING | REF_AGRUP # noqa
         values = {
             "searchBy": "EXPEDICION",
             "value": picking.carrier_tracking_ref,

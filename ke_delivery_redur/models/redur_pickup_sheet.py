@@ -8,19 +8,19 @@ class RedurPickupSheet(models.Model):
     name = fields.Char(
         string="Sheet Id",
         required=True,
-        help="Identificador de la hoja de recogida",
+        help="Pickup sheet identifier",
     )
     file = fields.Binary(
         required=True,
-        help="Archivo de la hoja de recogida en formato PDF",
+        help="Pickup sheet file in PDF format",
     )
     file_name = fields.Char()
     date = fields.Datetime(
         default=lambda self: fields.Datetime.now(),
-        help="Fecha de creación de la hoja de recogida",
+        help="Pickup sheet creation date",
     )
     carrier_id = fields.Many2one(
         comodel_name="delivery.carrier",
         required=True,
-        help="Transportista asociado a la hoja de recogida",
+        help="Carrier associated with the pickup sheet",
     )

@@ -1,8 +1,8 @@
 {
-    "name": "Kernet: Delivery Redur",
+    "name": "Delivery Redur",
     "author": "Kernet",
-    "website": "http://www.kernet.es",
-    "category": "Personalizaciones Kernet",
+    "website": "https://www.kernet.es",
+    "category": "Kernet Delivery",
     "version": "17.0.1.0.1",
     "depends": [
         "delivery_package_number",
