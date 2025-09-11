@@ -17,6 +17,8 @@
         "views/stock_picking_views.xml",
         "views/redur_sender_code_views.xml",
     ],
-    "license": "AGPL-3",
+    "license": "OPL-1",
     "installable": True,
+    "price": 10.0,
+    "currency": "EUR",
 }
