@@ -161,7 +161,9 @@ class DeliveryCarrier(models.Model):
             "consigneeAddress": escape(consignee.street or ""),
             "consigneeCity": escape(consignee.city or ""),
             "consigneePostalCode": consignee.zip,
-            "consigneeProvince": escape(consignee.state_id.name or ""),
+            "consigneeProvince": escape(
+                (consignee.state_id.name or "")[:25]
+            ),  # REDUR max 25 chars
             "consigneeCountry": consignee.country_id.code_numeric,
             "additionalClientInformation": "",
             "saveConsignee": 0,
