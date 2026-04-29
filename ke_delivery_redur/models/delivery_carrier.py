@@ -144,6 +144,16 @@ class DeliveryCarrier(models.Model):
         # with a value greater than zero.
         # For now, we only pass the number of packages.
         consignee = picking.partner_id
+        # Redur API docs do not specify a max length for consigneeName.
+        # Using 40 chars as an estimated limit, based on other carriers (e.g. DHL).
+        consignee_name = consignee.name
+        if consignee.parent_id:
+            max_parent_length = min(
+                len(consignee.parent_id.name), 19 + max(19 - len(consignee_name), 0)
+            )
+            consignee_name = (
+                f"{consignee.parent_id.name[:max_parent_length]}, {consignee_name}"
+            )
         values = {
             "senderCode": self.redur_sender_code_id.sender_code or "",
             "printerType": self.redur_printer_type,
@@ -157,7 +167,7 @@ class DeliveryCarrier(models.Model):
                 picking.shipping_weight, 1
             ),  # 8 digits: 7 before the decimal and 1 after
             # it is recommended to set the default value to 0.01
-            "consigneeName": consignee.name,
+            "consigneeName": consignee_name[:40],
             "consigneeAddress": escape(consignee.street or ""),
             "consigneeCity": escape(consignee.city or ""),
             "consigneePostalCode": consignee.zip,
