@@ -187,7 +187,7 @@ class DeliveryCarrier(models.Model):
             "longPackages": "",  # See TODO
             "irregularPackages": "",  # See TODO
             "exceptedPackages": "",
-            "contactPerson": consignee.name,
+            "contactPerson": consignee_name[:REDUR_CONSIGNEE_NAME_MAX_LENGTH],
             # Recipient's email for sending notifications.
             # This service must be activated commercially with REDUR
             "contactEmail": consignee.email,
