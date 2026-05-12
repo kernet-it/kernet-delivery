@@ -192,7 +192,7 @@ class DeliveryCarrier(models.Model):
             # This service must be activated commercially with REDUR
             "contactEmail": consignee.email,
             # This service must be commercially activated with REDUR
-            "comments": picking.redur_shipping_notes,
+            "comments": picking.redur_shipping_notes or "",
             # comments2: We include the recipient's phone number as recommended,
             # so it appears on the label
             "comments2": consignee.phone or consignee.mobile,
