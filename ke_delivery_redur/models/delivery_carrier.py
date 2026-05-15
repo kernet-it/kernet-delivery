@@ -173,7 +173,8 @@ class DeliveryCarrier(models.Model):
             ),  # 8 digits: 7 before the decimal and 1 after
             # it is recommended to set the default value to 0.01
             "consigneeName": consignee_name[:REDUR_CONSIGNEE_NAME_MAX_LENGTH],
-            "consigneeAddress": escape(consignee.street or ""),
+            # REDUR max 60 chars
+            "consigneeAddress": escape((consignee.street or "")[:60]),
             "consigneeCity": escape(consignee.city or ""),
             "consigneePostalCode": consignee.zip,
             "consigneeProvince": escape(
