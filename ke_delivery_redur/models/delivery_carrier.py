@@ -176,7 +176,7 @@ class DeliveryCarrier(models.Model):
             "consigneeName": consignee_name[:REDUR_CONSIGNEE_NAME_MAX_LENGTH],
             # REDUR max 60 chars
             "consigneeAddress": escape((consignee.street or "")[:60]),
-            "consigneeCity": escape(consignee.city or ""),
+            "consigneeCity": escape((consignee.city or "")[:35]),
             "consigneePostalCode": consignee.zip,
             "consigneeProvince": escape(
                 (consignee.state_id.name or "")[:25]
