@@ -172,6 +172,7 @@ class DeliveryCarrier(models.Model):
                 picking.shipping_weight, 1
             ),  # 8 digits: 7 before the decimal and 1 after
             # it is recommended to set the default value to 0.01
+            "volume": 0.01,
             "consigneeName": consignee_name[:REDUR_CONSIGNEE_NAME_MAX_LENGTH],
             # REDUR max 60 chars
             "consigneeAddress": escape((consignee.street or "")[:60]),
