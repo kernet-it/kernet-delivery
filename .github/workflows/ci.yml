@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+    branches: ["*.0"] # branch-per-version: 16.0, 17.0, ...
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    # Edition is the addons' concern, not the repo's — tests run against the
+    # CE base image (the workflow's default).
+    uses: kernet-it/kernet-ci/.github/workflows/addons.yml@v1
+    secrets: inherit
