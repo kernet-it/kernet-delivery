@@ -1,0 +1,15 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv
+.ruff_cache/
+.pytest_cache/
+*.log
+
+node_modules/
+
+.DS_Store
+*~
+*.swp
+.zed
+.vscode

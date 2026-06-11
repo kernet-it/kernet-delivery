@@ -1,0 +1,67 @@
+# Check gate only: every hook reports and FAILS, nothing here modifies or stages files.
+# Mirrors project-template's dev tooling; addons live at the REPO ROOT here, so the
+# js/asset hooks have no addons/ path prefix. The ty hook runs via uvx, so `uv` must
+# be installed.
+minimum_pre_commit_version: "3.0.0"
+default_install_hook_types: [pre-commit]
+repos:
+  - repo: local
+    hooks:
+      - id: forbidden-files
+        name: forbidden files (.rej copier rejects)
+        entry: found forbidden files; review, fix, and remove them
+        language: fail
+        files: "\\.rej$"
+      - id: en-po-files
+        name: en.po files cannot exist
+        entry: found an en.po file
+        language: fail
+        files: '[a-zA-Z0-9_]*/i18n/en\.po$'
+      - id: ty
+        name: ty (type check)
+        # No official ty pre-commit hook yet (astral-sh/ty#269); run via uvx.
+        entry: uvx ty check
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true
+      - id: prettier
+        name: prettier (check — no XML; see check-xml)
+        # mirrors-prettier hardcodes --write, so run locally in check mode. No plugins:
+        # prettier resolves config plugins relative to the repo (which has no node_modules),
+        # so XML is left to check-xml (well-formedness) + your editor's XML extension.
+        entry: prettier --check --ignore-unknown
+        language: node
+        additional_dependencies:
+          - "prettier@3.8.3"
+        # Addon dirs only (they sit at the repo root); root-level generated files
+        # (README, workflow yml) and the per-addon copier answers aren't ours to format.
+        files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|ya?ml)$
+        exclude: \.copier-answers\.yml$
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.16
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+        args: [--check]
+  - repo: https://github.com/OCA/pylint-odoo
+    rev: v10.0.2
+    hooks:
+      - id: pylint_odoo
+        args: [--rcfile=.pylintrc]
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.39.1
+    hooks:
+      - id: eslint
+        additional_dependencies:
+          - "eslint@9.39.1"
+          - "eslint-plugin-jsdoc@50.8.0"
+        files: ^[a-z0-9_]+/.*\.(js|jsx)$
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: debug-statements
+      - id: check-xml          # XML well-formedness (prettier-XML needs a node_modules we don't ship)
