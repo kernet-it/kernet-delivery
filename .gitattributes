@@ -1,0 +1,3 @@
+# Normalize line endings; force LF for shell scripts so shebangs never break.
+* text=auto
+*.sh text eol=lf

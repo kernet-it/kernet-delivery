@@ -1,0 +1,23 @@
+# Odoo's ORM is dynamic, so attribute resolution is relaxed; `odoo` imports are
+# allowed-unresolved because Odoo lives in the base image, not the dev venv.
+# Addons live at the repo root (one directory per module).
+[rules]
+unresolved-attribute = "ignore"
+possibly-missing-attribute = "ignore"
+
+[environment]
+python-version = "3.12"
+root = ["."]
+
+[analysis]
+allowed-unresolved-imports = [
+  "odoo",
+  "odoo.**",
+]
+
+[src]
+exclude = [
+  "**/__pycache__/**",
+  ".venv/**",
+  "node_modules/**",
+]

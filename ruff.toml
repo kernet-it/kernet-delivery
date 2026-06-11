@@ -1,0 +1,25 @@
+# target-version tracks the base image's Python.
+target-version = "py312"
+
+[lint]
+extend-select = [
+    "B",     # flake8-bugbear
+    "C90",   # mccabe complexity
+    "E501",  # line too long (default 88)
+    "I",     # isort
+    "UP",    # pyupgrade
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401", "I001"]   # unused / unsorted imports in addon __init__
+"__manifest__.py" = ["B018"]       # the manifest dict reads as a "useless expression"
+
+[lint.isort]
+section-order = ["future", "standard-library", "third-party", "odoo", "odoo-addons", "first-party", "local-folder"]
+
+[lint.isort.sections]
+"odoo" = ["odoo"]
+"odoo-addons" = ["odoo.addons"]
+
+[lint.mccabe]
+max-complexity = 16
