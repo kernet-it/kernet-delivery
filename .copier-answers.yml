@@ -1,9 +1,10 @@
 # Managed by Copier — do not edit by hand.
 # Run `copier update` on this branch to pull template changes.
-_commit: 06d81bc
+_commit: fdd69d6
 _src_path: gh:kernet-it/addon-repo-template
 category: delivery
 description: Kernet delivery addons.
 odoo_version: '19'
 repo_name: kernet-delivery
+standalone_ci: true
 
