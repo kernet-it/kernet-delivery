@@ -14,7 +14,8 @@ concurrency:
 
 jobs:
   ci:
-    # Edition is the addons' concern, not the repo's — tests run against the
-    # CE base image (the workflow's default).
-    uses: kernet-it/kernet-ci/.github/workflows/addons.yml@v1
+    # Public repo: GitHub forbids calling reusable workflows that live in
+    # private repos (kernet-ci), so the check job is vendored next to this
+    # file — same caller shape keeps the required "ci / check" context.
+    uses: ./.github/workflows/addons.yml
     secrets: inherit
