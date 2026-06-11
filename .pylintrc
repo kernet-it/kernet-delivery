@@ -1,0 +1,77 @@
+# disable=all + enable only the 8xxx pylint-odoo checks: ruff/ty cover general Python and
+# types, so this layer does ONLY the Odoo-domain checks they structurally cannot.
+# Re-list available symbols with:
+#   pylint --load-plugins=pylint_odoo --list-msgs | grep 8[0-9][0-9][0-9]
+[MASTER]
+load-plugins=pylint_odoo
+score=n
+
+[ODOOLINT]
+manifest-required-authors=Kernet
+manifest-required-keys=license
+manifest-deprecated-keys=description,active
+license-allowed=AGPL-3,GPL-2,GPL-2 or any later version,GPL-3,GPL-3 or any later version,LGPL-3,OPL-1
+valid-odoo-versions=18.0
+
+[MESSAGES CONTROL]
+disable=all
+enable=sql-injection,
+    invalid-commit,
+    external-request-timeout,
+    no-write-in-compute,
+    no-raise-unlink,
+    deprecated-name-get,
+    deprecated-inselect-operator,
+    deprecated-odoo-model-method,
+    attribute-deprecated,
+    method-required-super,
+    prohibited-method-override,
+    super-method-mismatch,
+    test-folder-imported,
+    translation-required,
+    translation-field,
+    translation-not-lazy,
+    translation-contains-variable,
+    translation-positional-used,
+    translation-format-interpolation,
+    translation-fstring-interpolation,
+    translation-unsupported-format,
+    translation-format-truncated,
+    translation-too-many-args,
+    translation-too-few-args,
+    prefer-env-translation,
+    manifest-required-author,
+    manifest-required-key,
+    manifest-deprecated-key,
+    manifest-superfluous-key,
+    manifest-author-string,
+    manifest-maintainers-list,
+    manifest-version-format,
+    manifest-data-duplicated,
+    manifest-behind-migrations,
+    manifest-external-assets,
+    license-allowed,
+    website-manifest-key-not-valid-uri,
+    development-status-allowed,
+    method-compute,
+    method-search,
+    method-inverse,
+    missing-return,
+    renamed-field-parameter,
+    context-overridden,
+    odoo-addons-relative-import,
+    bad-builtin-groupby,
+    no-search-all,
+    no-wizard-in-models,
+    odoo-exception-warning,
+    consider-merging-classes-inherited,
+    invalid-email,
+    resource-not-exist,
+    print-used,
+    except-pass,
+    use-vim-comment
+
+[REPORTS]
+msg-template={path}:{line}: [{msg_id}({symbol}), {obj}] {msg}
+output-format=colorized
+reports=no
