@@ -1,0 +1,66 @@
+name: addons
+
+# Vendored copy of the active `check` job from kernet-it/kernet-ci
+# .github/workflows/addons.yml, rendered only when standalone_ci: this repo
+# is PUBLIC and GitHub forbids public repos from calling reusable workflows
+# that live in private repos. ci.yml calls this local copy with the same
+# caller shape, so the required "ci / check" context is unchanged.
+# KEEP IN SYNC: changes to the check job in kernet-ci belong here too.
+
+on:
+  workflow_call:
+
+jobs:
+  check:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          # Addon repos carry no requirements/lock files to key a uv cache on.
+          enable-cache: false
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+      - name: Bootstrap .venv from [tool.kernet.dependencies]
+        # ty resolves third-party imports from the repo-root .venv; without one,
+        # every declared dep reads as unresolved-import in CI. Deps come from the
+        # same contract that feeds the project image build, so an import that is
+        # still unresolved here is an UNDECLARED dependency — fix the pyproject.
+        run: |
+          ver=$(python3 - <<'PY'
+          import pathlib, tomllib
+          ver = "3.10"
+          ty = pathlib.Path("ty.toml")
+          if ty.is_file():
+              ver = tomllib.load(ty.open("rb")).get("environment", {}).get("python-version", ver)
+          reqs, cons = [], []
+          for f in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
+              deps = tomllib.load(f.open("rb")).get("tool", {}).get("kernet", {}).get("dependencies", {})
+              reqs += deps.get("python", [])
+              cons += deps.get("constraints", [])
+          pathlib.Path("/tmp/ci-reqs.txt").write_text("\n".join(sorted(set(reqs))) + "\n")
+          pathlib.Path("/tmp/ci-constraints.txt").write_text("\n".join(sorted(set(cons))) + "\n")
+          print(ver)
+          PY
+          )
+          uv venv --python "$ver" .venv
+          # Odoo's own requirements approximate what the base image bundles —
+          # without them ty cannot resolve werkzeug/lxml/... on a bare runner.
+          # python-ldap/psycopg2 are sdist-only: same build headers and
+          # setuptools<82 cap as base-images (see its build-constraints.txt).
+          sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
+          echo 'setuptools<82' > /tmp/build-constraints.txt
+          branch="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
+          curl -fsSL -o /tmp/odoo-reqs.txt \
+            "https://raw.githubusercontent.com/odoo/odoo/$branch/requirements.txt"
+          # Same bump as base-images: 16.0-18.0 pin gevent/greenlet versions with
+          # no cp310 wheels that fail to build under Cython 3.
+          sed -i 's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' /tmp/odoo-reqs.txt
+          uv pip install -p .venv -c /tmp/ci-constraints.txt \
+            --build-constraints /tmp/build-constraints.txt \
+            -r /tmp/odoo-reqs.txt -r /tmp/ci-reqs.txt
+      - run: uvx pre-commit run --all-files --show-diff-on-failure
