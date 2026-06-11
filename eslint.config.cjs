@@ -19,7 +19,9 @@ const config = [{
         },
 
         ecmaVersion: 2024,
-        sourceType: "script",
+        // Odoo 16+ frontend JS is all ES modules in plain .js files — the
+        // .esm.js-only override this replaced was an Odoo 14/15 OCA relic
+        sourceType: "module",
     },
 
     rules: {
@@ -190,13 +192,6 @@ const config = [{
         },
     },
 
-}, {
-    files: ["**/*.esm.js"],
-
-    languageOptions: {
-        ecmaVersion: 2024,
-        sourceType: "module",
-    },
 }];
 
 module.exports = config
