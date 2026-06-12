@@ -19,8 +19,12 @@ repos:
         files: '[a-zA-Z0-9_]*/i18n/en\.po$'
       - id: ty
         name: ty (type check)
-        # No official ty pre-commit hook yet (astral-sh/ty#269); run via uvx.
-        entry: uvx ty check
+        # NOT the official ty-pre-commit hook: its `uv check` runs with the
+        # pre-commit hook env active, which beats ty's repo-.venv discovery, so
+        # third-party imports stop resolving (CI's venv bootstrap relies on it).
+        # Pinning environment.python in ty.toml restores that but hard-errors
+        # whenever .venv is missing. Pin ty in lockstep with project-template.
+        entry: uvx ty@0.0.43 check
         language: system
         types: [python]
         pass_filenames: false
