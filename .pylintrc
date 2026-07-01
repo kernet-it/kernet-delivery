@@ -8,7 +8,7 @@ score=n
 
 [ODOOLINT]
 manifest-required-authors=Kernet
-manifest-required-keys=license
+manifest-required-keys=license,maintainers
 manifest-deprecated-keys=description,active
 license-allowed=AGPL-3,GPL-2,GPL-2 or any later version,GPL-3,GPL-3 or any later version,LGPL-3,OPL-1
 valid-odoo-versions=18.0
@@ -67,6 +67,7 @@ enable=sql-injection,
     consider-merging-classes-inherited,
     invalid-email,
     resource-not-exist,
+    missing-readme,
     print-used,
     except-pass,
     use-vim-comment
