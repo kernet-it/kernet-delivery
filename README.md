@@ -41,3 +41,10 @@ tooling. Set up locally with:
 uvx pre-commit install
 uv venv && uv pip install <the deps your addons declare>   # ty resolves from ./.venv
 ```
+
+## Addons
+
+<!-- prettier-ignore-start -->
+[//]: # (addons)
+[//]: # (end addons)
+<!-- prettier-ignore-end -->
