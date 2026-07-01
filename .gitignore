@@ -13,3 +13,9 @@ node_modules/
 *.swp
 .zed
 .vscode
+
+# AI coding assistants: ignore personal/local settings only. Team-shared config
+# stays committed (.claude/settings.json, CLAUDE.md, AGENTS.md, .codex/config.toml).
+.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.override.md
