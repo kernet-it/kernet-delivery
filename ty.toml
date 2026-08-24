@@ -1,5 +1,7 @@
-# Odoo's ORM is dynamic, so attribute resolution is relaxed; `odoo` imports are
-# allowed-unresolved because Odoo lives in the base image, not the dev venv.
+# Odoo's ORM is dynamic, so attribute resolution is relaxed. `odoo` itself is
+# ordinary source and is read as such; only `odoo.addons.**` is excused, because
+# that namespace is assembled from the addons path at run time and exists nowhere
+# on disk for a checker to follow.
 # Addons live at the repo root (one directory per module).
 [rules]
 unresolved-attribute = "ignore"
@@ -11,8 +13,7 @@ root = ["."]
 
 [analysis]
 allowed-unresolved-imports = [
-  "odoo",
-  "odoo.**",
+  "odoo.addons.**",
 ]
 
 [src]
@@ -21,3 +22,19 @@ exclude = [
   ".venv/**",
   "node_modules/**",
 ]
+
+# A field declared in another class -- an inherited model, or any record read off
+# the environment -- is not an attribute ty can see, so writing it reads as an
+# assignment to an undeclared attribute. Reads are already relaxed above; writes
+# come back as `invalid-assignment`. Addon code holds records anywhere, so this
+# covers whole addons; anything beside them keeps the rule.
+[[overrides]]
+include = ["*/**/*.py"]
+
+[overrides.rules]
+invalid-assignment = "ignore"
+# Odoo annotates narrower than it accepts, and addon code sits on the difference:
+# `create` is declared `list[ValuesType]` though @api.model_create_multi takes a
+# dict, `browse` rejects the None it normalises to an empty recordset, and
+# `_table` is `str | None` on the base class though every concrete model has one.
+invalid-argument-type = "ignore"
