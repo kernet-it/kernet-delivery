@@ -9,18 +9,230 @@ name: addons
 
 on:
   workflow_call:
+    inputs:
+      odoo_version:
+        description: Odoo version branch override for stacked or feature-branch pull requests.
+        type: string
+        default: ""
+      onixpy_dependency:
+        description: Fetch the latest main revision of the private onixpy dependency.
+        type: boolean
+        default: false
+      onixpy_revision:
+        description: Deprecated full kernet-it/onixpy commit compatibility input.
+        type: string
+        default: ""
+
+env:
+  ODOO_VERSION_OVERRIDE: ${{ inputs.odoo_version }}
 
 jobs:
   check:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           # pre-commit --from-ref/--to-ref needs both diff endpoints in local
           # history; the default depth-1 checkout has only the tip.
           fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve Odoo version
+        id: odoo
+        shell: bash
+        run: |
+          version="${ODOO_VERSION_OVERRIDE:-${GITHUB_BASE_REF:-$GITHUB_REF_NAME}}"
+          if [[ ! "$version" =~ ^[0-9]+\.0$ ]]; then
+            echo "::error title=addons.yml::Odoo version must use NN.0 format"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Collect addon dependency metadata
+        id: dependencies
+        env:
+          BASH_ENV: ""
+          ENV: ""
+          ONIXPY_LEGACY_REVISION: 8fb0b9c0ef07c8a1ef81cfb1bf56f5c33cd66f97
+          ONIXPY_REQUESTED: ${{ inputs.onixpy_dependency || inputs.onixpy_revision != '' }}
+          ONIXPY_REVISION: ${{ inputs.onixpy_revision }}
+        run: |
+          /usr/bin/python3 -I -S - <<'PY'
+          import os, pathlib, re, tomllib
+
+          def content(entries):
+              lines = sorted(set(entries))
+              return "\n".join(lines) + ("\n" if lines else "")
+
+          def resolve_onixpy_revision(entries, requested, revision, legacy_revision):
+              if not requested:
+                  return None
+              if revision and re.fullmatch(r"[0-9a-f]{40}", revision) is None:
+                  raise SystemExit("onixpy_revision must be a full commit SHA")
+              onixpy_reqs = [
+                  entry
+                  for entry in sorted(set(entries))
+                  if re.match(r"(?i)^onixpy(?:\s|\[|@|[<>=!~])", entry)
+              ]
+              declared = onixpy_reqs[0] if len(onixpy_reqs) == 1 else ""
+              prefix = "onixpy @ git+https://github.com/kernet-it/onixpy.git@"
+              if revision:
+                  if declared != f"{prefix}{revision}":
+                      raise SystemExit(
+                          "the declared onixpy source does not match the requested ref"
+                      )
+                  return revision
+              if declared == f"{prefix}main":
+                  return ""
+              if declared == f"{prefix}{legacy_revision}":
+                  return legacy_revision
+              raise SystemExit(
+                  "onixpy_dependency requires canonical @main or legacy source"
+              )
+
+          def rejects_onixpy(entries, revision=""):
+              try:
+                  resolve_onixpy_revision(
+                      entries,
+                      True,
+                      revision,
+                      os.environ["ONIXPY_LEGACY_REVISION"],
+                  )
+              except SystemExit:
+                  return True
+              return False
+
+          onixpy_prefix = "onixpy @ git+https://github.com/kernet-it/onixpy.git@"
+          legacy_revision = os.environ["ONIXPY_LEGACY_REVISION"]
+          test_revision = "0" * 40
+          assert resolve_onixpy_revision(
+              [f"{onixpy_prefix}main"], True, "", legacy_revision
+          ) == ""
+          assert resolve_onixpy_revision(
+              [f"{onixpy_prefix}{test_revision}"],
+              True,
+              test_revision,
+              legacy_revision,
+          ) == test_revision
+          assert resolve_onixpy_revision(
+              [f"{onixpy_prefix}{legacy_revision}"], True, "", legacy_revision
+          ) == legacy_revision
+          assert rejects_onixpy([f"{onixpy_prefix}feature"])
+          assert rejects_onixpy([f"{onixpy_prefix}main"], test_revision)
+          assert rejects_onixpy(
+              ["onixpy @ git+ssh://git@github.com/kernet-it/onixpy.git@main"]
+          )
+
+          ver = "3.10"
+          # A repo that no longer excuses `odoo` wants it read as ordinary source,
+          # so CI has to put it on the path. One that still excuses it keeps
+          # today's behaviour, which is what every unmigrated repo relies on.
+          needs_odoo = False
+          ty = pathlib.Path("ty.toml")
+          if ty.is_file():
+              cfg = tomllib.load(ty.open("rb"))
+              ver = cfg.get("environment", {}).get("python-version", ver)
+              excused = cfg.get("analysis", {}).get("allowed-unresolved-imports", [])
+              needs_odoo = not any(p in ("odoo", "odoo.*", "odoo.**") for p in excused)
+          pathlib.Path("/tmp/ci-needs-odoo").write_text("1" if needs_odoo else "")
+          reqs, cons = [], []
+          for f in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
+              deps = tomllib.load(f.open("rb")).get("tool", {}).get("kernet", {}).get("dependencies", {})
+              reqs += deps.get("python", [])
+              cons += deps.get("constraints", [])
+          pathlib.Path("/tmp/ci-reqs.txt").write_text(content(reqs))
+          pathlib.Path("/tmp/ci-constraints.txt").write_text(content(cons))
+          if ver not in {"3.10", "3.12"}:
+              raise SystemExit(f"unsupported Python version selector: {ver}")
+          output = [f"python_version={ver}"]
+          revision = resolve_onixpy_revision(
+              reqs,
+              os.environ["ONIXPY_REQUESTED"] == "true",
+              os.environ["ONIXPY_REVISION"],
+              legacy_revision,
+          )
+          if revision is not None:
+              output.append(f"onixpy_revision={revision}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
+              stream.write("\n".join(output) + "\n")
+          PY
+      - name: Authorize the private onixpy provider
+        if: inputs.onixpy_dependency || inputs.onixpy_revision != ''
+        id: private-dependencies
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ secrets.KERNET_CI_APP_ID }}
+          private-key: ${{ secrets.KERNET_CI_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: onixpy
+          permission-contents: read
+      - name: Fetch the private onixpy provider
+        if: inputs.onixpy_dependency || inputs.onixpy_revision != ''
+        id: onixpy
+        shell: sh
+        env:
+          BASH_ENV: ""
+          DEPENDENCY_TOKEN: ${{ steps.private-dependencies.outputs.token }}
+          ENV: ""
+          GIT_CONFIG_GLOBAL: /dev/null
+          GIT_CONFIG_NOSYSTEM: 1
+          ONIXPY_REVISION: ${{ steps.dependencies.outputs.onixpy_revision }}
+        run: |
+          /usr/bin/install -d /tmp/onixpy-provider
+          /usr/bin/git -C /tmp/onixpy-provider init -q
+          /usr/bin/git -C /tmp/onixpy-provider remote add origin \
+            https://github.com/kernet-it/onixpy.git
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0="url.https://x-access-token:${DEPENDENCY_TOKEN}@github.com/.insteadOf"
+          export GIT_CONFIG_VALUE_0="https://github.com/"
+          if [ -n "$ONIXPY_REVISION" ]; then
+            /usr/bin/git -C /tmp/onixpy-provider fetch -q --depth=1 origin \
+              "$ONIXPY_REVISION"
+          else
+            /usr/bin/git -C /tmp/onixpy-provider fetch -q --depth=1 origin \
+              refs/heads/main
+          fi
+          unset DEPENDENCY_TOKEN GIT_CONFIG_COUNT GIT_CONFIG_KEY_0 GIT_CONFIG_VALUE_0
+          commit=$(/usr/bin/git -C /tmp/onixpy-provider rev-parse 'FETCH_HEAD^{commit}')
+          printf 'commit=%s\n' "$commit" >> "$GITHUB_OUTPUT"
+      - name: Use the fetched onixpy provider
+        if: inputs.onixpy_dependency || inputs.onixpy_revision != ''
+        env:
+          BASH_ENV: ""
+          ENV: ""
+          ONIXPY_COMMIT: ${{ steps.onixpy.outputs.commit }}
+          ONIXPY_REVISION: ${{ steps.dependencies.outputs.onixpy_revision }}
+        run: |
+          fetched=$(/usr/bin/git -C /tmp/onixpy-provider rev-parse FETCH_HEAD)
+          if [ "$fetched" != "$ONIXPY_COMMIT" ]; then
+            echo "::error title=addons.yml::Fetched onixpy commit changed before checkout"
+            exit 1
+          fi
+          if [ -n "$ONIXPY_REVISION" ] && [ "$fetched" != "$ONIXPY_REVISION" ]; then
+            echo "::error title=addons.yml::Fetched onixpy commit does not match the revision"
+            exit 1
+          fi
+          /usr/bin/git -C /tmp/onixpy-provider checkout -q --detach FETCH_HEAD
+          ONIXPY_SOURCE_REF=${ONIXPY_REVISION:-main}
+          ONIXPY_REQUIREMENT="onixpy @ git+https://github.com/kernet-it/onixpy.git@$ONIXPY_SOURCE_REF" \
+            /usr/bin/python3 -I -S - <<'PY'
+          import os, pathlib
+
+          path = pathlib.Path("/tmp/ci-reqs.txt")
+          expected = os.environ["ONIXPY_REQUIREMENT"]
+          lines = path.read_text().splitlines()
+          if lines.count(expected) != 1:
+              raise SystemExit("expected exactly one declared onixpy source")
+          path.write_text(
+              "\n".join(
+                  "onixpy @ file:///tmp/onixpy-provider" if line == expected else line
+                  for line in lines
+              )
+              + "\n"
+          )
+          PY
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           # Addon repos carry no requirements/lock files to key a uv cache on.
@@ -34,39 +246,150 @@ jobs:
         # every declared dep reads as unresolved-import in CI. Deps come from the
         # same contract that feeds the project image build, so an import that is
         # still unresolved here is an UNDECLARED dependency — fix the pyproject.
+        env:
+          ODOO_VERSION: ${{ steps.odoo.outputs.version }}
+          PYTHON_VERSION: ${{ steps.dependencies.outputs.python_version }}
         run: |
-          ver=$(python3 - <<'PY'
-          import pathlib, tomllib
-          ver = "3.10"
-          ty = pathlib.Path("ty.toml")
-          if ty.is_file():
-              ver = tomllib.load(ty.open("rb")).get("environment", {}).get("python-version", ver)
-          reqs, cons = [], []
-          for f in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
-              deps = tomllib.load(f.open("rb")).get("tool", {}).get("kernet", {}).get("dependencies", {})
-              reqs += deps.get("python", [])
-              cons += deps.get("constraints", [])
-          pathlib.Path("/tmp/ci-reqs.txt").write_text("\n".join(sorted(set(reqs))) + "\n")
-          pathlib.Path("/tmp/ci-constraints.txt").write_text("\n".join(sorted(set(cons))) + "\n")
-          print(ver)
-          PY
+          uv venv --python "$PYTHON_VERSION" .venv
+          # Only an addon requirement active for this exact target interpreter
+          # can release the matching base constraint. The parser runs in a
+          # temporary overlay, so packaging does not enter the type-check venv.
+          uv run --no-project --python .venv/bin/python --with packaging python -I - <<'PY'
+          import pathlib, re
+
+          from packaging.markers import Marker
+          from packaging.requirements import InvalidRequirement, Requirement
+          from packaging.utils import canonicalize_name
+
+          egg = re.compile(
+              r"[#&]egg=(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)"
           )
-          uv venv --python "$ver" .venv
+
+          def distribution_name(entry):
+              try:
+                  parsed = Requirement(entry)
+              except InvalidRequirement:
+                  requirement, _, marker = entry.partition(";")
+                  match = egg.search(requirement)
+                  if not match or (marker.strip() and not Marker(marker).evaluate()):
+                      return None
+                  return str(canonicalize_name(match.group("name")))
+              if parsed.marker is not None and not parsed.marker.evaluate():
+                  return None
+              return str(canonicalize_name(parsed.name))
+
+          assert distribution_name("Zope.Interface>=6") == "zope-interface"
+          assert distribution_name(
+              "demo @ https://example.invalid/demo.whl ; python_version >= '0'"
+          ) == "demo"
+          assert distribution_name(
+              "git+https://example.invalid/demo.git#egg=Legacy_Demo; "
+              "python_version >= '0'"
+          ) == "legacy-demo"
+          assert distribution_name("urllib3>=2; python_version < '0'") is None
+          assert distribution_name(
+              "demo @ https://example.invalid/demo.whl ; python_version < '0'"
+          ) is None
+          assert distribution_name(
+              "git+https://example.invalid/demo.git#egg=Legacy_Demo; "
+              "python_version < '0'"
+          ) is None
+          assert distribution_name("https://example.invalid/opaque.whl") is None
+
+          reqs = pathlib.Path("/tmp/ci-reqs.txt").read_text().splitlines()
+          names = sorted(
+              {name for entry in reqs if (name := distribution_name(entry))}
+          )
+          pathlib.Path("/tmp/ci-declared-names.txt").write_text(
+              "\n".join(names) + ("\n" if names else "")
+          )
+          PY
           # Odoo's own requirements approximate what the base image bundles —
           # without them ty cannot resolve werkzeug/lxml/... on a bare runner.
           # python-ldap/psycopg2 are sdist-only: same build headers and
           # setuptools<82 cap as base-images (see its build-constraints.txt).
           sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
           echo 'setuptools<82' > /tmp/build-constraints.txt
-          branch="${GITHUB_BASE_REF:-$GITHUB_REF_NAME}"
           curl -fsSL -o /tmp/odoo-reqs.txt \
-            "https://raw.githubusercontent.com/odoo/odoo/$branch/requirements.txt"
+            "https://raw.githubusercontent.com/odoo/odoo/$ODOO_VERSION/requirements.txt"
           # Same bump as base-images: 16.0-18.0 pin gevent/greenlet versions with
           # no cp310 wheels that fail to build under Cython 3.
           sed -i 's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' /tmp/odoo-reqs.txt
-          uv pip install -p .venv -c /tmp/ci-constraints.txt \
+          uv pip install -p .venv \
             --build-constraints /tmp/build-constraints.txt \
-            -r /tmp/odoo-reqs.txt -r /tmp/ci-reqs.txt
+            -r /tmp/odoo-reqs.txt
+          # Match the project image: a dependency named directly by an addon
+          # may replace the Odoo base version, while every transitive base
+          # package remains pinned. This makes each replacement explicit and
+          # still rejects undeclared upgrades or incompatible addon requirements.
+          uv pip freeze -p .venv > /tmp/odoo-base-freeze.txt
+          python3 -I -S - <<'PY'
+          import pathlib, re
+
+          def canonical(value):
+              return re.sub(r"[-_.]+", "-", value).lower()
+
+          def filter_constraints(lines, declared):
+              kept, replaced = [], []
+              for line in lines:
+                  name = canonical(re.split(r"[=<>!~@ ;\[]", line, maxsplit=1)[0])
+                  if name in declared:
+                      replaced.append((name, line))
+                  else:
+                      kept.append(line)
+              return kept, replaced
+
+          fixture_kept, fixture_replaced = filter_constraints(
+              ["idna==3.7", "python-stdnum==1.17", "Zope.Interface==6.0"],
+              {"python-stdnum", "zope-interface"},
+          )
+          assert fixture_kept == ["idna==3.7"]
+          assert fixture_replaced == [
+              ("python-stdnum", "python-stdnum==1.17"),
+              ("zope-interface", "Zope.Interface==6.0"),
+          ]
+          assert filter_constraints([], set()) == ([], [])
+
+          declared = set(
+              pathlib.Path("/tmp/ci-declared-names.txt").read_text().splitlines()
+          )
+          kept, replaced = filter_constraints(
+              pathlib.Path("/tmp/odoo-base-freeze.txt").read_text().splitlines(),
+              declared,
+          )
+          for name, line in replaced:
+              print(
+                  f"::notice title=addons.yml::{name} is declared by an addon; "
+                  f"the Odoo base selection {line} will not constrain it"
+              )
+          pathlib.Path("/tmp/odoo-base-constraints.txt").write_text(
+              "\n".join(kept) + ("\n" if kept else "")
+          )
+          PY
+          # Odoo itself, for a repo whose ty.toml excuses only `odoo.addons.**`:
+          # that spelling asks for `odoo` to be checked rather than waved past,
+          # and it is not a dependency any pyproject can declare. The branch
+          # tarball carries no history and only the `odoo` package is unpacked,
+          # so this costs a fraction of a clone. `odoo.addons.**` stays
+          # unresolvable regardless — that namespace is assembled from the
+          # addons path at run time.
+          if [ -s /tmp/ci-needs-odoo ]; then
+            mkdir -p /tmp/odoo-src
+            curl -fsSL "https://github.com/odoo/odoo/archive/refs/heads/$ODOO_VERSION.tar.gz" \
+              | tar -xz -C /tmp/odoo-src --strip-components=1 "odoo-$ODOO_VERSION/odoo"
+            site=$(.venv/bin/python -I -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+            echo /tmp/odoo-src > "$site/_odoo_src.pth"
+          fi
+      - name: Install addon dependencies
+        run: |
+          if [ -s /tmp/ci-reqs.txt ]; then
+            uv pip install -p .venv \
+              -c /tmp/ci-constraints.txt \
+              -c /tmp/odoo-base-constraints.txt \
+              --build-constraints /tmp/build-constraints.txt \
+              -r /tmp/ci-reqs.txt
+          fi
+          uv pip check -p .venv
       - name: pre-commit (changed files only)
         env:
           # PR: diff the base branch against the PR head. Push/dispatch: diff the
