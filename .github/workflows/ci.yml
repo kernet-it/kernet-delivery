@@ -18,4 +18,6 @@ jobs:
     # private repos (kernet-ci), so the check job is vendored next to this
     # file — same caller shape keeps the required "ci / check" context.
     uses: ./.github/workflows/addons.yml
+    with:
+      odoo_version: "17.0"
     secrets: inherit

@@ -4,6 +4,11 @@
 # be installed.
 minimum_pre_commit_version: "3.0.0"
 default_install_hook_types: [pre-commit]
+# Hook environments follow whatever `python3` resolves to, not the interpreter
+# pre-commit happens to run under: one Odoo 15 environment on a machine is enough
+# to make uv hand every tool a 3.8 that the hooks no longer support.
+default_language_version:
+  python: python3
 repos:
   - repo: local
     hooks:
@@ -24,7 +29,7 @@ repos:
         # third-party imports stop resolving (CI's venv bootstrap relies on it).
         # Pinning environment.python in ty.toml restores that but hard-errors
         # whenever .venv is missing. Pin ty in lockstep with project-template.
-        entry: uvx ty@0.0.43 check
+        entry: uvx ty@0.0.63 check
         language: system
         types: [python]
         pass_filenames: false
@@ -43,7 +48,7 @@ repos:
         files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|ya?ml)$
         exclude: \.copier-answers\.yml$
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.16
+    rev: v0.16.0
     hooks:
       - id: ruff-check
       - id: ruff-format
