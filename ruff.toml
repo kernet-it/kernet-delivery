@@ -1,13 +1,67 @@
 # target-version tracks the base image's Python.
 target-version = "py312"
 
+# Python inside Markdown fences is illustrative, so the formatter leaves it alone.
+[format]
+exclude = ["**/*.md"]
+
+# Every rule, less what Odoo's own idioms make unusable. A release that adds a rule
+# therefore fails the gate, which is the point: the pin moves by hand, and the new
+# rule gets a decision here instead of silence.
 [lint]
-extend-select = [
-    "B",     # flake8-bugbear
-    "C90",   # mccabe complexity
-    "E501",  # line too long (default 88)
-    "I",     # isort
-    "UP",    # pyupgrade
+select = ["ALL"]
+ignore = [
+    # The formatter owns these, and ruff documents the conflict.
+    "COM812", "COM819", "ISC001", "ISC002",
+
+    # Odoo's public API is underscore-prefixed -- _name, _read_group, every hook
+    # and compute -- so private access is how an addon addresses the framework.
+    "SLF001",
+    # _inherit, _inherits and _sql_constraints are declarations the registry reads
+    # at build time, not state shared between instances.
+    "RUF012",
+    # An addon imports its own siblings relatively; odoo.addons.<name> addresses
+    # somebody else's.
+    "TID252",
+    # `Partner = self.env["res.partner"]` holds a model, and a model is a class.
+    "N806",
+    # migrations/ holds scripts the upgrade runner loads by path, never a package.
+    "INP001",
+    # The framework fixes the signature: an override keeps the argument it has no
+    # use for, and `default=lambda self: ...` ignores its own receiver.
+    "ARG", "PLR0913", "PLR0917",
+    # Odoo tests run on unittest through TransactionCase. There is no pytest.
+    "PT",
+    # A type-checking block buys nothing here: odoo.api.Self and ValuesType are
+    # annotations the ORM reads while it runs.
+    "TC001", "TC002", "TC003",
+    # Comment intent, not routines: a docstring on every public method is the
+    # opposite of that.
+    "D",
+    # Annotations go where they clarify a return or a domain, not everywhere.
+    "ANN",
+    # An addon carries its licence in the manifest, not in a header per file.
+    "CPY001",
+    # Odoo passes booleans positionally, and a UserError takes its sentence inline
+    # rather than through a constant nobody else reads.
+    "FBT", "EM", "TRY003",
+    # Typographic dashes and ellipses in labels are deliberate.
+    "RUF001", "RUF002", "RUF003",
+    # The heuristic reads the *name* of a token parameter as a secret.
+    "S105",
+    # Codes and identifiers are built from fixed lengths, and the rule reads
+    # comparison operands only: it names the bound and walks past the arithmetic
+    # beside it that gives the line its meaning.
+    "PLR2004",
+    # `domain + [(...)]` is how Odoo writes a domain, core included.
+    "RUF005",
+    # Collapsing costs a wrap at 88 columns, and a neighbouring block carrying two
+    # inner conditions cannot follow, so a pair that does one job stops looking
+    # alike.
+    "SIM102",
+    # A per-item try is the design wherever one record must not sink the batch: the
+    # rule asks for the handler outside the loop, which abandons the rest of it.
+    "PERF203",
 ]
 
 [lint.per-file-ignores]
@@ -23,3 +77,10 @@ section-order = ["future", "standard-library", "third-party", "odoo", "odoo-addo
 
 [lint.mccabe]
 max-complexity = 16
+
+# Sized to the complexity budget above. A reader over an optional-element format
+# and a domain translator run long because the format does, and splitting one
+# scatters a single decision over two functions.
+[lint.pylint]
+max-branches = 16
+max-returns = 12
