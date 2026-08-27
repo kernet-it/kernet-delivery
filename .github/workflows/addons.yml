@@ -42,6 +42,13 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Check addon releases
+        uses: $/.github/actions/addon-release
+        with:
+          layout: addon-group
+          odoo-series: ${{ steps.odoo.outputs.version }}
+          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
       - name: Collect addon dependency metadata
         id: dependencies
         env:

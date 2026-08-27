@@ -19,6 +19,7 @@ allowed-unresolved-imports = [
 [src]
 exclude = [
   "**/__pycache__/**",
+  ".github/actions/addon-release/check_addon_releases.py",
   ".venv/**",
   "node_modules/**",
 ]
