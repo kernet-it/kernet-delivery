@@ -51,13 +51,16 @@ repos:
     rev: v0.16.0
     hooks:
       - id: ruff-check
+        exclude: ^\.github/actions/addon-release/check_addon_releases\.py$
       - id: ruff-format
         args: [--check]
+        exclude: ^\.github/actions/addon-release/check_addon_releases\.py$
   - repo: https://github.com/OCA/pylint-odoo
     rev: v10.0.2
     hooks:
       - id: pylint_odoo
         args: [--rcfile=.pylintrc]
+        exclude: ^\.github/actions/addon-release/check_addon_releases\.py$
   - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v9.39.1
     hooks:
