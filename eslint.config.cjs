@@ -1,4 +1,5 @@
 jsdoc = require("eslint-plugin-jsdoc");
+globals = require("globals");
 
 const config = [{
     plugins: {
@@ -7,6 +8,9 @@ const config = [{
 
     languageOptions: {
         globals: {
+            // This is browser code: fetch, document and the rest of the DOM
+            // are the environment, not undeclared names.
+            ...globals.browser,
             _: "readonly",
             $: "readonly",
             fuzzy: "readonly",
@@ -154,7 +158,11 @@ const config = [{
         strict: ["error", "function"],
         "use-isnan": "error",
 
-        "jsdoc/check-tag-names": "warn",
+        "jsdoc/check-tag-names": ["warn", {
+            // Odoo marks a native module with this tag, and every file under
+            // static/src carries it.
+            definedTags: ["odoo-module"],
+        }],
         "jsdoc/check-types": "warn",
         "jsdoc/require-param-description": "off",
         "jsdoc/require-return": "off",
