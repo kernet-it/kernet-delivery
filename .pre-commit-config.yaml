@@ -35,17 +35,19 @@ repos:
         pass_filenames: false
         require_serial: true
       - id: prettier
-        name: prettier (check — no XML; see check-xml)
-        # mirrors-prettier hardcodes --write, so run locally in check mode. No plugins:
-        # prettier resolves config plugins relative to the repo (which has no node_modules),
-        # so XML is left to check-xml (well-formedness) + your editor's XML extension.
+        name: prettier (check)
+        # mirrors-prettier hardcodes --write, so run locally in check mode. The XML
+        # plugin rides this hook's environment: prettier 3 will not resolve a bare
+        # plugin name without a repo node_modules, so prettier.config.cjs resolves
+        # it through the NODE_PATH pre-commit exports here.
         entry: prettier --check --ignore-unknown
         language: node
         additional_dependencies:
           - "prettier@3.8.3"
+          - "@prettier/plugin-xml@3.4.2"
         # Addon dirs only (they sit at the repo root); root-level generated files
         # (README, workflow yml) and the per-addon copier answers aren't ours to format.
-        files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|ya?ml)$
+        files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|xml|ya?ml)$
         exclude: \.copier-answers\.yml$
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.0
@@ -77,4 +79,4 @@ repos:
       - id: check-case-conflict
       - id: check-symlinks
       - id: debug-statements
-      - id: check-xml          # XML well-formedness (prettier-XML needs a node_modules we don't ship)
+      - id: check-xml          # XML well-formedness, ahead of and beside the formatter
