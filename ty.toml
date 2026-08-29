@@ -1,16 +1,49 @@
-# Odoo's ORM is dynamic, so attribute resolution is relaxed. `odoo` itself is
-# ordinary source and is read as such; only `odoo.addons.**` is excused, because
-# that namespace is assembled from the addons path at run time and exists nowhere
-# on disk for a checker to follow.
-# Addons live at the repo root (one directory per module).
-[rules]
-unresolved-attribute = "ignore"
-possibly-missing-attribute = "ignore"
+# Every rule at the gate, the way ruff.toml selects ALL: ty ships no ALL
+# switch, so the rules it keeps below error are promoted one by one, and
+# error-on-warning turns whatever a future release adds at warn into a
+# failure — the pin moves by hand, and a new rule gets a decision here
+# instead of silence.
+[terminal]
+error-on-warning = true
 
+[rules]
+# Shipped at warn, promoted.
+ambiguous-protocol-member = "error"
+deprecated = "error"
+ignore-comment-unknown-rule = "error"
+inconsistent-mro = "error"
+ineffective-final = "error"
+invalid-enum-member-annotation = "error"
+invalid-ignore-comment = "error"
+invalid-legacy-positional-parameter = "error"
+possibly-missing-import = "error"
+possibly-unresolved-reference = "error"
+unsupported-bool-conversion = "error"
+unused-awaitable = "error"
+unused-type-ignore-comment = "error"
+# Shipped off, enabled.
+blanket-ignore-comment = "error"
+division-by-zero = "error"
+raw-string-type-annotation = "error"
+redundant-cast = "error"
+redundant-final-classvar = "error"
+shadowed-type-variable = "error"
+undefined-reveal = "error"
+# Honest because optional imports live in [analysis], never inline: an inline
+# ignore for an optional library would flip between used and unused with the
+# environment that runs the check.
+unused-ignore-comment = "error"
+
+# Addons live at the repo root (one directory per module).
 [environment]
 python-version = "3.12"
 root = ["."]
 
+# The one home for imports the checking environment cannot resolve: Odoo's
+# run-time addon namespace, and any optional library an addon imports at run
+# time. Extend this list rather than writing an inline
+# `# ty: ignore[unresolved-import]`, which unused-ignore-comment would flag
+# the moment an environment installs the library.
 [analysis]
 allowed-unresolved-imports = [
   "odoo.addons.**",
@@ -24,15 +57,16 @@ exclude = [
   "node_modules/**",
 ]
 
-# A field declared in another class -- an inherited model, or any record read off
-# the environment -- is not an attribute ty can see, so writing it reads as an
-# assignment to an undeclared attribute. Reads are already relaxed above; writes
-# come back as `invalid-assignment`. Addon code holds records anywhere, so this
-# covers whole addons; anything beside them keeps the rule.
+# Odoo's ORM is dynamic: an addon reads fields the registry merges from other
+# classes at run time, so attribute resolution is relaxed for addon code —
+# and only there; Python beside the addons keeps every rule. Writes to such
+# fields come back as `invalid-assignment` for the same reason.
 [[overrides]]
 include = ["*/**/*.py"]
 
 [overrides.rules]
+unresolved-attribute = "ignore"
+possibly-missing-attribute = "ignore"
 invalid-assignment = "ignore"
 # Odoo annotates narrower than it accepts, and addon code sits on the difference:
 # `create` is declared `list[ValuesType]` though @api.model_create_multi takes a
