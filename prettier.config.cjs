@@ -34,4 +34,13 @@ const config = {
     ],
 };
 
-module.exports = config;
+// A repo-local decision goes in prettier.local.cjs (committed, never rendered
+// by the template), so a copier update cannot conflict with it.
+let local = {};
+try {
+    local = require("./prettier.local.cjs");
+} catch {
+    local = {};
+}
+
+module.exports = {...config, ...local};
