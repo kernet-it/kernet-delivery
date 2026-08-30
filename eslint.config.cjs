@@ -202,4 +202,13 @@ const config = [{
 
 }];
 
-module.exports = config
+// Repo-local flat-config entries go in eslint.local.cjs (committed, never
+// rendered by the template), so a copier update cannot conflict with them.
+let local = [];
+try {
+    local = require("./eslint.local.cjs");
+} catch {
+    local = [];
+}
+
+module.exports = [...config, ...local];

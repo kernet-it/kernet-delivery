@@ -80,3 +80,6 @@ repos:
       - id: check-symlinks
       - id: debug-statements
       - id: check-xml          # XML well-formedness, ahead of and beside the formatter
+
+# The template writes nothing below this line. Repo-local hooks appended here
+# survive every copier update; template-owned hooks above are not for editing.
