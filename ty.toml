@@ -73,3 +73,6 @@ invalid-assignment = "ignore"
 # dict, `browse` rejects the None it normalises to an empty recordset, and
 # `_table` is `str | None` on the base class though every concrete model has one.
 invalid-argument-type = "ignore"
+
+# The template writes nothing below this line. Extra [[overrides]] blocks a
+# repo appends here survive every copier update; prefer answers above even so.
