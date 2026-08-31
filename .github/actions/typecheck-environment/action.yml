@@ -1,0 +1,228 @@
+name: Prepare Odoo type-check environment
+description: Prepare the repository .venv when a change requires the ty hook.
+
+inputs:
+  enabled:
+    description: Enable preparation when the changed-file set can run ty.
+    required: false
+    default: "true"
+  layout:
+    description: Dependency layout (auto, project, or addon-group).
+    required: false
+    default: auto
+  odoo-version:
+    description: Odoo series override; inferred from project metadata when empty.
+    required: false
+    default: ""
+  typecheck-policy:
+    description: Type-check scope policy (strict or incremental).
+    required: false
+    default: strict
+  base:
+    description: Base revision for changed-file detection.
+    required: false
+    default: ""
+  head:
+    description: Head revision for changed-file detection.
+    required: false
+    default: HEAD
+  github-app-client-id:
+    description: GitHub App client ID used only when private dependencies exist.
+    required: false
+    default: ""
+  github-app-private-key:
+    description: GitHub App private key used only when private dependencies exist.
+    required: false
+    default: ""
+
+outputs:
+  required:
+    description: Whether the changed-file set required a type-check environment.
+    value: ${{ steps.detect.outputs.required }}
+  reason:
+    description: Reason why preparation ran or was skipped.
+    value: ${{ steps.detect.outputs.reason }}
+  mode:
+    description: Type-check scope (none, changed, or all).
+    value: ${{ steps.detect.outputs.mode }}
+  odoo-version:
+    description: Resolved Odoo series in NN.0 format.
+    value: ${{ steps.metadata.outputs.odoo-version }}
+  python-version:
+    description: Python version selected from ty.toml.
+    value: ${{ steps.metadata.outputs.python-version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Detect whether ty can run
+      id: detect
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        BASE: ${{ inputs.base }}
+        ENABLED: ${{ inputs.enabled }}
+        HEAD: ${{ inputs.head }}
+        LAYOUT: ${{ inputs.layout }}
+        TYPECHECK_POLICY: ${{ inputs.typecheck-policy }}
+      run: >-
+        /usr/bin/python3 -I -S "$ACTION_SCRIPT" detect
+        --enabled "$ENABLED"
+        --layout "$LAYOUT"
+        --policy "$TYPECHECK_POLICY"
+        --base "$BASE"
+        --head "$HEAD"
+        --runner-temp "$RUNNER_TEMP"
+        --output "$GITHUB_OUTPUT"
+
+    - name: Collect dependency metadata
+      if: steps.detect.outputs.required == 'true'
+      id: metadata
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        LAYOUT: ${{ inputs.layout }}
+        ODOO_VERSION: ${{ inputs.odoo-version }}
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: >-
+        /usr/bin/python3 -I -S "$ACTION_SCRIPT" collect
+        --layout "$LAYOUT"
+        --odoo-version "$ODOO_VERSION"
+        --state-dir "$STATE"
+        --output "$GITHUB_OUTPUT"
+
+    - name: Set up uv with dependency caching
+      if: steps.detect.outputs.required == 'true'
+      uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      with:
+        enable-cache: true
+        cache-python: true
+        cache-suffix: typecheck-${{ steps.metadata.outputs.odoo-version }}-${{ steps.metadata.outputs.python-version }}
+        cache-dependency-glob: |
+          .env
+          .pre-commit-config.yaml
+          ty.toml
+          dependencies/**/*
+          pyproject.toml
+          */pyproject.toml
+          addons/*/pyproject.toml
+          extra-addons/*/pyproject.toml
+          !oca/**/pyproject.toml
+          !kernet/**/pyproject.toml
+        ignore-nothing-to-cache: true
+
+    - name: Select active dependencies
+      if: steps.detect.outputs.required == 'true'
+      id: dependencies
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        PYTHON_VERSION: ${{ steps.metadata.outputs.python-version }}
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: |
+        uv venv --python "$PYTHON_VERSION" .venv
+        uv venv --python "$PYTHON_VERSION" "$STATE/tooling"
+        uv pip install -p "$STATE/tooling" packaging \
+          "tomli; python_version < '3.11'"
+        "$STATE/tooling/bin/python" -I "$ACTION_SCRIPT" activate --state-dir "$STATE" \
+          --output "$GITHUB_OUTPUT"
+
+    - name: Require private dependency credentials
+      if: >-
+        steps.dependencies.outputs.private-dependencies == 'true' &&
+        (inputs.github-app-client-id == '' || inputs.github-app-private-key == '')
+      shell: bash
+      run: |
+        echo "::error title=typecheck environment::Private Kernet dependencies require the kernet-ci GitHub App credentials."
+        exit 1
+
+    - name: Authorize private Kernet dependencies
+      if: steps.dependencies.outputs.private-dependencies == 'true'
+      id: private-dependencies
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      with:
+        client-id: ${{ inputs.github-app-client-id }}
+        private-key: ${{ inputs.github-app-private-key }}
+        owner: ${{ github.repository_owner }}
+        # Transitive provider repositories are not known before their metadata
+        # is fetched. This installation token is read-only and reaches only the
+        # fixed fetch step. Package builds never receive it.
+        permission-contents: read
+
+    - name: Fetch private Kernet dependencies
+      if: steps.dependencies.outputs.private-dependencies == 'true'
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        BASH_ENV: ""
+        DEPENDENCY_TOKEN: ${{ steps.private-dependencies.outputs.token }}
+        ENV: ""
+        GIT_CONFIG_GLOBAL: /dev/null
+        GIT_CONFIG_NOSYSTEM: "1"
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: >-
+        "$STATE/tooling/bin/python" -I "$ACTION_SCRIPT" fetch-private
+        --state-dir "$STATE"
+
+    - name: Use fetched private Kernet dependencies
+      if: steps.dependencies.outputs.private-dependencies == 'true'
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: >-
+        /usr/bin/python3 -I -S "$ACTION_SCRIPT" materialize-private
+        --state-dir "$STATE"
+
+    - name: Install the Odoo base environment
+      if: steps.detect.outputs.required == 'true'
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        ODOO_VERSION: ${{ steps.metadata.outputs.odoo-version }}
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: |
+        sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
+        echo 'setuptools<82' > "$STATE/build-constraints.txt"
+        curl --retry 3 --retry-all-errors -fsSL -o "$STATE/odoo-requirements.txt" \
+          "https://raw.githubusercontent.com/odoo/odoo/$ODOO_VERSION/requirements.txt"
+        sed -i \
+          's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' \
+          "$STATE/odoo-requirements.txt"
+        uv pip install -p .venv \
+          --build-constraints "$STATE/build-constraints.txt" \
+          -r "$STATE/odoo-requirements.txt"
+        uv pip freeze -p .venv > "$STATE/odoo-base-freeze.txt"
+        /usr/bin/python3 -I -S "$ACTION_SCRIPT" base-constraints \
+          --state-dir "$STATE"
+
+        if [ -s "$STATE/needs-odoo-source" ]; then
+          mkdir "$STATE/odoo-source"
+          curl --retry 3 --retry-all-errors -fsSL \
+            "https://github.com/odoo/odoo/archive/refs/heads/$ODOO_VERSION.tar.gz" \
+            | tar -xz -C "$STATE/odoo-source" --strip-components=1 \
+              "odoo-$ODOO_VERSION/odoo"
+          site=$(.venv/bin/python -I -c \
+            'import sysconfig; print(sysconfig.get_paths()["purelib"])')
+          echo "$STATE/odoo-source" > "$site/_odoo_src.pth"
+        fi
+
+    - name: Install declared dependencies
+      if: steps.detect.outputs.required == 'true'
+      shell: bash
+      env:
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: |
+        if [ -s "$STATE/requirements.txt" ]; then
+          override_args=()
+          if [ -s "$STATE/private-overrides.txt" ]; then
+            override_args=(--overrides "$STATE/private-overrides.txt")
+          fi
+          uv pip install -p .venv \
+            -c "$STATE/constraints.txt" \
+            -c "$STATE/odoo-base-constraints.txt" \
+            --build-constraints "$STATE/build-constraints.txt" \
+            "${override_args[@]}" \
+            -r "$STATE/requirements.txt"
+        fi
+        uv pip check -p .venv

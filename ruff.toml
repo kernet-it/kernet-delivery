@@ -1,9 +1,14 @@
 # target-version tracks the base image's Python.
 target-version = "py312"
 
-# This stdlib-only CI implementation is maintained and tested in kernet-ci. It
-# is vendored byte-for-byte for public repositories, not governed as addon code.
-extend-exclude = [".github/actions/addon-release/check_addon_releases.py"]
+# These CI implementations are maintained and tested in kernet-ci. Public
+# repositories vendor them byte-for-byte; they are not governed as addon code.
+# The absent paths are no-ops in shared mode, so both render modes use one lint
+# contract.
+extend-exclude = [
+    ".github/actions/addon-release/check_addon_releases.py",
+    ".github/actions/typecheck-environment/typecheck_environment.py",
+]
 
 # Python inside Markdown fences is illustrative, so the formatter leaves it alone.
 [format]
