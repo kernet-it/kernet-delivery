@@ -1,6 +1,6 @@
 # Managed by Copier — do not edit by hand.
 # Run `copier update` on this branch to pull template changes.
-_commit: 40f1be6
+_commit: 4c4e385
 _src_path: gh:kernet-it/addon-repo-template
 category: delivery
 description: Kernet delivery addons.

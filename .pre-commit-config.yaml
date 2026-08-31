@@ -33,6 +33,7 @@ repos:
         language: system
         types: [python]
         require_serial: true
+        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
       - id: prettier
         name: prettier (check)
         # mirrors-prettier hardcodes --write, so run locally in check mode. The XML
