@@ -1,11 +1,12 @@
 name: addons
 
-# Vendored copy of the active `check` job from kernet-it/kernet-ci
+# Vendored copy of the kernet-ci@v2 check job
 # .github/workflows/addons.yml, rendered only when standalone_ci: this repo
 # is PUBLIC and GitHub forbids public repos from calling reusable workflows
 # that live in private repos. ci.yml calls this local copy with the same
 # caller shape, so the required "ci / check" context is unchanged.
-# KEEP IN SYNC: changes to the check job in kernet-ci belong here too.
+# KEEP IN SYNC: align this job and the typecheck-environment action with the
+# kernet-ci release used by private addon repositories.
 
 on:
   workflow_call:
@@ -22,7 +23,7 @@ jobs:
   check:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: read
     steps:
@@ -49,492 +50,38 @@ jobs:
           odoo-series: ${{ steps.odoo.outputs.version }}
           base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-      - name: Collect addon dependency metadata
-        id: dependencies
-        env:
-          BASH_ENV: ""
-          ENV: ""
-        run: |
-          /usr/bin/python3 -I -S - <<'PY'
-          import json, os, pathlib, re, tomllib
-
-          DIST_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
-          PRIVATE_VCS = re.compile(
-              rf"^(?P<name>{DIST_NAME})(?P<extras>\[[^]]+\])?\s*@\s*"
-              r"git\+https://github\.com/kernet-it/"
-              rf"(?P<repository>{DIST_NAME})\.git"
-              r"(?:@(?P<ref>[A-Za-z0-9][A-Za-z0-9._/-]*))?"
-              r"(?:\s*;\s*(?P<marker>.+))?$"
-          )
-
-          def content(entries):
-              lines = sorted(set(entries))
-              return "\n".join(lines) + ("\n" if lines else "")
-
-          def private_vcs_requirement(entry):
-              if "kernet-it/" not in entry or "git+" not in entry:
-                  return None
-              match = PRIVATE_VCS.fullmatch(entry)
-              if match is None:
-                  raise SystemExit(
-                      "private Kernet dependencies must use "
-                      "'name @ git+https://github.com/kernet-it/repository.git[@ref]'"
-                  )
-              ref = match.group("ref") or ""
-              if ref and any(part in {"", ".", ".."} for part in ref.split("/")):
-                  raise SystemExit(f"invalid private dependency ref: {ref!r}")
-              return match.groupdict(default="")
-
-          def rejects_private(entry):
-              try:
-                  private_vcs_requirement(entry)
-              except SystemExit:
-                  return True
-              return False
-
-          fixture = private_vcs_requirement(
-              "demo[cli] @ git+https://github.com/kernet-it/lib-demo.git@feature/x "
-              "; python_version >= '3.10'"
-          )
-          assert fixture == {
-              "name": "demo",
-              "extras": "[cli]",
-              "repository": "lib-demo",
-              "ref": "feature/x",
-              "marker": "python_version >= '3.10'",
-          }
-          assert private_vcs_requirement(
-              "demo @ git+https://github.com/kernet-it/lib-demo.git"
-          )["ref"] == ""
-          assert private_vcs_requirement(
-              "demo @ git+https://github.com/example/demo.git@main"
-          ) is None
-          assert rejects_private(
-              "demo @ git+ssh://git@github.com/kernet-it/lib-demo.git@main"
-          )
-          assert rejects_private(
-              "demo @ git+https://github.com/kernet-it/lib-demo.git@feature/../main"
-          )
-
-          ver = "3.10"
-          # A repo that no longer excuses `odoo` wants it read as ordinary source,
-          # so CI has to put it on the path. One that still excuses it keeps
-          # today's behaviour, which is what every unmigrated repo relies on.
-          needs_odoo = False
-          ty = pathlib.Path("ty.toml")
-          if ty.is_file():
-              cfg = tomllib.load(ty.open("rb"))
-              ver = cfg.get("environment", {}).get("python-version", ver)
-              excused = cfg.get("analysis", {}).get("allowed-unresolved-imports", [])
-              needs_odoo = not any(p in ("odoo", "odoo.*", "odoo.**") for p in excused)
-          pathlib.Path("/tmp/ci-needs-odoo").write_text("1" if needs_odoo else "")
-          reqs, cons = [], []
-          for f in sorted(pathlib.Path(".").glob("*/pyproject.toml")):
-              deps = tomllib.load(f.open("rb")).get("tool", {}).get("kernet", {}).get("dependencies", {})
-              reqs += deps.get("python", [])
-              cons += deps.get("constraints", [])
-          pathlib.Path("/tmp/ci-reqs.txt").write_text(content(reqs))
-          pathlib.Path("/tmp/ci-constraints.txt").write_text(content(cons))
-          private = [
-              requirement
-              for entry in sorted(set(reqs))
-              if (requirement := private_vcs_requirement(entry)) is not None
-          ]
-          pathlib.Path("/tmp/ci-private-requirements.json").write_text(
-              json.dumps(private, sort_keys=True)
-          )
-          if ver not in {"3.10", "3.12"}:
-              raise SystemExit(f"unsupported Python version selector: {ver}")
-          output = [
-              f"python_version={ver}",
-              f"private_dependencies={'true' if private else 'false'}",
-          ]
-          with open(os.environ["GITHUB_OUTPUT"], "a") as stream:
-              stream.write("\n".join(output) + "\n")
-          PY
-      - name: Authorize private Kernet dependencies
-        if: steps.dependencies.outputs.private_dependencies == 'true'
-        id: private-dependencies
-        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      - name: Prepare the ty environment when needed
+        id: typecheck
+        uses: $/.github/actions/typecheck-environment
         with:
-          client-id: ${{ secrets.KERNET_CI_APP_ID }}
-          private-key: ${{ secrets.KERNET_CI_APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          # Transitive provider repositories are unknown until their metadata is
-          # fetched. The installation token is read-only and reaches only the
-          # fixed fetch step below; package builds never receive it.
-          permission-contents: read
-      - name: Fetch private Kernet dependencies
-        if: steps.dependencies.outputs.private_dependencies == 'true'
-        shell: sh
-        env:
-          BASH_ENV: ""
-          DEPENDENCY_TOKEN: ${{ steps.private-dependencies.outputs.token }}
-          ENV: ""
-          GIT_CONFIG_GLOBAL: /dev/null
-          GIT_CONFIG_NOSYSTEM: 1
-        run: |
-          /usr/bin/python3 -I -S - <<'PY'
-          import json, os, pathlib, re, subprocess, tomllib
-
-          DIST_NAME = r"[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?"
-          PRIVATE_VCS = re.compile(
-              rf"^(?P<name>{DIST_NAME})(?P<extras>\[[^]]+\])?\s*@\s*"
-              r"git\+https://github\.com/kernet-it/"
-              rf"(?P<repository>{DIST_NAME})\.git"
-              r"(?:@(?P<ref>[A-Za-z0-9][A-Za-z0-9._/-]*))?"
-              r"(?:\s*;\s*(?P<marker>.+))?$"
-          )
-          ROOT = pathlib.Path("/tmp/kernet-private-dependencies")
-
-          def canonical(value):
-              return re.sub(r"[-_.]+", "-", value).lower()
-
-          def private_vcs_requirement(entry):
-              if "kernet-it/" not in entry or "git+" not in entry:
-                  return None
-              match = PRIVATE_VCS.fullmatch(entry)
-              if match is None:
-                  raise SystemExit(f"noncanonical private dependency: {entry}")
-              ref = match.group("ref") or ""
-              if ref and any(part in {"", ".", ".."} for part in ref.split("/")):
-                  raise SystemExit(f"invalid private dependency ref: {ref!r}")
-              return match.groupdict(default="")
-
-          def requirements_at(directory, commit):
-              result = subprocess.run(
-                  ["/usr/bin/git", "-C", directory, "show", f"{commit}:pyproject.toml"],
-                  check=False,
-                  stdout=subprocess.PIPE,
-              )
-              if result.returncode:
-                  return []
-              data = tomllib.loads(result.stdout.decode())
-              project = data.get("project", {})
-              entries = list(project.get("dependencies", []))
-              for optional in project.get("optional-dependencies", {}).values():
-                  entries.extend(optional)
-              entries.extend(data.get("build-system", {}).get("requires", []))
-              entries.extend(
-                  data.get("tool", {})
-                  .get("kernet", {})
-                  .get("dependencies", {})
-                  .get("python", [])
-              )
-              return entries
-
-          token = os.environ["DEPENDENCY_TOKEN"]
-          git_env = os.environ.copy()
-          git_env.update(
-              {
-                  "GIT_CONFIG_COUNT": "1",
-                  "GIT_CONFIG_KEY_0": (
-                      f"url.https://x-access-token:{token}@github.com/.insteadOf"
-                  ),
-                  "GIT_CONFIG_VALUE_0": "https://github.com/",
-                  "GIT_TERMINAL_PROMPT": "0",
-              }
-          )
-          ROOT.mkdir()
-          queue = json.loads(
-              pathlib.Path("/tmp/ci-private-requirements.json").read_text()
-          )
-          sources = {}
-          distributions = {}
-          while queue:
-              requirement = queue.pop(0)
-              repository = requirement["repository"]
-              repository_key = repository.lower()
-              ref = requirement["ref"]
-              name = canonical(requirement["name"])
-              if name in distributions and distributions[name] != repository_key:
-                  raise SystemExit(
-                      f"private distribution {name!r} uses multiple repositories"
-                  )
-              distributions[name] = repository_key
-              if repository_key in sources:
-                  if sources[repository_key]["ref"] != ref:
-                      raise SystemExit(
-                          f"private repository {repository!r} uses multiple refs"
-                      )
-                  sources[repository_key]["names"].add(name)
-                  continue
-              directory = ROOT / repository
-              directory.mkdir()
-              subprocess.run(
-                  ["/usr/bin/git", "-C", directory, "init", "-q"], check=True
-              )
-              subprocess.run(
-                  [
-                      "/usr/bin/git",
-                      "-C",
-                      directory,
-                      "remote",
-                      "add",
-                      "origin",
-                      f"https://github.com/kernet-it/{repository}.git",
-                  ],
-                  check=True,
-              )
-              subprocess.run(
-                  [
-                      "/usr/bin/git",
-                      "-C",
-                      directory,
-                      "fetch",
-                      "-q",
-                      "--depth=1",
-                      "origin",
-                      ref or "HEAD",
-                  ],
-                  check=True,
-                  env=git_env,
-              )
-              commit = subprocess.check_output(
-                  [
-                      "/usr/bin/git",
-                      "-C",
-                      directory,
-                      "rev-parse",
-                      "FETCH_HEAD^{commit}",
-                  ],
-                  text=True,
-              ).strip()
-              if re.fullmatch(r"[0-9a-f]{40}", ref) and commit != ref:
-                  raise SystemExit(
-                      f"private repository {repository!r} resolved the wrong commit"
-                  )
-              sources[repository_key] = {
-                  "commit": commit,
-                  "names": {name},
-                  "path": str(directory),
-                  "ref": ref,
-                  "repository": repository,
-              }
-              for entry in requirements_at(str(directory), commit):
-                  nested = private_vcs_requirement(entry)
-                  if nested is not None:
-                      queue.append(nested)
-
-          serialized = []
-          for source in sources.values():
-              serialized.append({**source, "names": sorted(source["names"])})
-          pathlib.Path("/tmp/ci-private-sources.json").write_text(
-              json.dumps(serialized, sort_keys=True)
-          )
-          PY
-      - name: Use fetched private Kernet dependencies
-        if: steps.dependencies.outputs.private_dependencies == 'true'
-        run: |
-          /usr/bin/python3 -I -S - <<'PY'
-          import json, pathlib, subprocess
-
-          sources = json.loads(
-              pathlib.Path("/tmp/ci-private-sources.json").read_text()
-          )
-          overrides = []
-          for source in sources:
-              directory = source["path"]
-              fetched = subprocess.check_output(
-                  ["/usr/bin/git", "-C", directory, "rev-parse", "FETCH_HEAD^{commit}"],
-                  text=True,
-              ).strip()
-              if fetched != source["commit"]:
-                  raise SystemExit(
-                      f"fetched commit changed for {source['repository']!r}"
-                  )
-              subprocess.run(
-                  [
-                      "/usr/bin/git",
-                      "-C",
-                      directory,
-                      "checkout",
-                      "-q",
-                      "--detach",
-                      fetched,
-                  ],
-                  check=True,
-              )
-              for name in source["names"]:
-                  overrides.append(f"{name} @ file://{directory}")
-                  print(
-                      f"::notice title=addons.yml::{name} uses "
-                      f"{source['repository']}@{fetched}"
-                  )
-          pathlib.Path("/tmp/ci-private-overrides.txt").write_text(
-              "\n".join(sorted(overrides)) + "\n"
-          )
-          PY
-      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+          layout: addon-group
+          odoo-version: ${{ steps.odoo.outputs.version }}
+          typecheck-policy: strict
+          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          github-app-client-id: ${{ secrets.KERNET_CI_APP_ID }}
+          github-app-private-key: ${{ secrets.KERNET_CI_APP_PRIVATE_KEY }}
+      - name: Set up uv for checks without ty preparation
+        if: steps.typecheck.outputs.required != 'true'
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
-          # Addon repos carry no requirements/lock files to key a uv cache on.
           enable-cache: false
       - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: Bootstrap .venv from [tool.kernet.dependencies]
-        # ty resolves third-party imports from the repo-root .venv; without one,
-        # every declared dep reads as unresolved-import in CI. Deps come from the
-        # same contract that feeds the project image build, so an import that is
-        # still unresolved here is an UNDECLARED dependency — fix the pyproject.
-        env:
-          ODOO_VERSION: ${{ steps.odoo.outputs.version }}
-          PYTHON_VERSION: ${{ steps.dependencies.outputs.python_version }}
-        run: |
-          uv venv --python "$PYTHON_VERSION" .venv
-          # Only an addon requirement active for this exact target interpreter
-          # can release the matching base constraint. The parser runs in a
-          # temporary overlay, so packaging does not enter the type-check venv.
-          uv run --no-project --python .venv/bin/python --with packaging python -I - <<'PY'
-          import pathlib, re
-
-          from packaging.markers import Marker
-          from packaging.requirements import InvalidRequirement, Requirement
-          from packaging.utils import canonicalize_name
-
-          egg = re.compile(
-              r"[#&]egg=(?P<name>[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?)"
-          )
-
-          def distribution_name(entry):
-              try:
-                  parsed = Requirement(entry)
-              except InvalidRequirement:
-                  requirement, _, marker = entry.partition(";")
-                  match = egg.search(requirement)
-                  if not match or (marker.strip() and not Marker(marker).evaluate()):
-                      return None
-                  return str(canonicalize_name(match.group("name")))
-              if parsed.marker is not None and not parsed.marker.evaluate():
-                  return None
-              return str(canonicalize_name(parsed.name))
-
-          assert distribution_name("Zope.Interface>=6") == "zope-interface"
-          assert distribution_name(
-              "demo @ https://example.invalid/demo.whl ; python_version >= '0'"
-          ) == "demo"
-          assert distribution_name(
-              "git+https://example.invalid/demo.git#egg=Legacy_Demo; "
-              "python_version >= '0'"
-          ) == "legacy-demo"
-          assert distribution_name("urllib3>=2; python_version < '0'") is None
-          assert distribution_name(
-              "demo @ https://example.invalid/demo.whl ; python_version < '0'"
-          ) is None
-          assert distribution_name(
-              "git+https://example.invalid/demo.git#egg=Legacy_Demo; "
-              "python_version < '0'"
-          ) is None
-          assert distribution_name("https://example.invalid/opaque.whl") is None
-
-          reqs = pathlib.Path("/tmp/ci-reqs.txt").read_text().splitlines()
-          names = sorted(
-              {name for entry in reqs if (name := distribution_name(entry))}
-          )
-          pathlib.Path("/tmp/ci-declared-names.txt").write_text(
-              "\n".join(names) + ("\n" if names else "")
-          )
-          PY
-          # Odoo's own requirements approximate what the base image bundles —
-          # without them ty cannot resolve werkzeug/lxml/... on a bare runner.
-          # python-ldap/psycopg2 are sdist-only: same build headers and
-          # setuptools<82 cap as base-images (see its build-constraints.txt).
-          sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
-          echo 'setuptools<82' > /tmp/build-constraints.txt
-          curl -fsSL -o /tmp/odoo-reqs.txt \
-            "https://raw.githubusercontent.com/odoo/odoo/$ODOO_VERSION/requirements.txt"
-          # Same bump as base-images: 16.0-18.0 pin gevent/greenlet versions with
-          # no cp310 wheels that fail to build under Cython 3.
-          sed -i 's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' /tmp/odoo-reqs.txt
-          uv pip install -p .venv \
-            --build-constraints /tmp/build-constraints.txt \
-            -r /tmp/odoo-reqs.txt
-          # Match the project image: a dependency named directly by an addon
-          # may replace the Odoo base version, while every transitive base
-          # package remains pinned. This makes each replacement explicit and
-          # still rejects undeclared upgrades or incompatible addon requirements.
-          uv pip freeze -p .venv > /tmp/odoo-base-freeze.txt
-          python3 -I -S - <<'PY'
-          import pathlib, re
-
-          def canonical(value):
-              return re.sub(r"[-_.]+", "-", value).lower()
-
-          def filter_constraints(lines, declared):
-              kept, replaced = [], []
-              for line in lines:
-                  name = canonical(re.split(r"[=<>!~@ ;\[]", line, maxsplit=1)[0])
-                  if name in declared:
-                      replaced.append((name, line))
-                  else:
-                      kept.append(line)
-              return kept, replaced
-
-          fixture_kept, fixture_replaced = filter_constraints(
-              ["idna==3.7", "python-stdnum==1.17", "Zope.Interface==6.0"],
-              {"python-stdnum", "zope-interface"},
-          )
-          assert fixture_kept == ["idna==3.7"]
-          assert fixture_replaced == [
-              ("python-stdnum", "python-stdnum==1.17"),
-              ("zope-interface", "Zope.Interface==6.0"),
-          ]
-          assert filter_constraints([], set()) == ([], [])
-
-          declared = set(
-              pathlib.Path("/tmp/ci-declared-names.txt").read_text().splitlines()
-          )
-          kept, replaced = filter_constraints(
-              pathlib.Path("/tmp/odoo-base-freeze.txt").read_text().splitlines(),
-              declared,
-          )
-          for name, line in replaced:
-              print(
-                  f"::notice title=addons.yml::{name} is declared by an addon; "
-                  f"the Odoo base selection {line} will not constrain it"
-              )
-          pathlib.Path("/tmp/odoo-base-constraints.txt").write_text(
-              "\n".join(kept) + ("\n" if kept else "")
-          )
-          PY
-          # Odoo itself, for a repo whose ty.toml excuses only `odoo.addons.**`:
-          # that spelling asks for `odoo` to be checked rather than waved past,
-          # and it is not a dependency any pyproject can declare. The branch
-          # tarball carries no history and only the `odoo` package is unpacked,
-          # so this costs a fraction of a clone. `odoo.addons.**` stays
-          # unresolvable regardless — that namespace is assembled from the
-          # addons path at run time.
-          if [ -s /tmp/ci-needs-odoo ]; then
-            mkdir -p /tmp/odoo-src
-            curl -fsSL "https://github.com/odoo/odoo/archive/refs/heads/$ODOO_VERSION.tar.gz" \
-              | tar -xz -C /tmp/odoo-src --strip-components=1 "odoo-$ODOO_VERSION/odoo"
-            site=$(.venv/bin/python -I -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')
-            echo /tmp/odoo-src > "$site/_odoo_src.pth"
-          fi
-      - name: Install addon dependencies
-        run: |
-          if [ -s /tmp/ci-reqs.txt ]; then
-            override_args=()
-            if [ -s /tmp/ci-private-overrides.txt ]; then
-              override_args=(--overrides /tmp/ci-private-overrides.txt)
-            fi
-            uv pip install -p .venv \
-              -c /tmp/ci-constraints.txt \
-              -c /tmp/odoo-base-constraints.txt \
-              --build-constraints /tmp/build-constraints.txt \
-              "${override_args[@]}" \
-              -r /tmp/ci-reqs.txt
-          fi
-          uv pip check -p .venv
+      - name: ty (all files after environment changes)
+        if: steps.typecheck.outputs.mode == 'all'
+        run: uvx pre-commit run ty --all-files --show-diff-on-failure
       - name: pre-commit (changed files only)
         env:
           # PR: diff the base branch against the PR head. Push/dispatch: diff the
           # previous tip (event.before) against this commit. A missing or all-zero
           # base — new branch, first push, force-push, manual dispatch — has no diff
           # baseline, so fall back to linting everything.
-          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          HEAD: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          SKIP: ${{ steps.typecheck.outputs.mode == 'all' && 'ty' || '' }}
         run: |
           if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
             uvx pre-commit run --from-ref "$BASE" --to-ref "$HEAD" --show-diff-on-failure
