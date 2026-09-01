@@ -72,7 +72,19 @@ jobs:
           key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
       - name: ty (all files after environment changes)
         if: steps.typecheck.outputs.mode == 'all'
-        run: uvx pre-commit run ty --all-files --show-diff-on-failure
+        run: uvx pre-commit run ty --hook-stage manual --all-files --show-diff-on-failure
+      - name: ty (changed files, manual stage)
+        if: steps.typecheck.outputs.mode == 'changed'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: |
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
+            uvx pre-commit run ty --hook-stage manual --from-ref "$BASE" --to-ref "$HEAD" --show-diff-on-failure
+          else
+            echo "No usable diff base (BASE='$BASE'); type-checking all files."
+            uvx pre-commit run ty --hook-stage manual --all-files --show-diff-on-failure
+          fi
       - name: pre-commit (changed files only)
         env:
           # PR: diff the base branch against the PR head. Push/dispatch: diff the
@@ -81,7 +93,7 @@ jobs:
           # baseline, so fall back to linting everything.
           BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
-          SKIP: ${{ steps.typecheck.outputs.mode == 'all' && 'ty' || '' }}
+          SKIP: ty
         run: |
           if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
             uvx pre-commit run --from-ref "$BASE" --to-ref "$HEAD" --show-diff-on-failure
