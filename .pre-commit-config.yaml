@@ -29,8 +29,10 @@ repos:
         # third-party imports stop resolving (CI's venv bootstrap relies on it).
         # Pinning environment.python in ty.toml restores that but hard-errors
         # whenever .venv is missing. Pin ty in lockstep with project-template.
+        # CI provides the Odoo type-check environment explicitly.
         entry: uvx ty@0.0.63 check
         language: system
+        stages: [manual]
         types: [python]
         require_serial: true
         exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
