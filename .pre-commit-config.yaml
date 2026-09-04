@@ -51,6 +51,12 @@ repos:
         # (README, workflow yml) and the per-addon copier answers aren't ours to format.
         files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|xml|ya?ml)$
         exclude: \.copier-answers\.yml$
+  - repo: https://github.com/rstcheck/rstcheck
+    rev: v6.3.0
+    hooks:
+      - id: rstcheck
+        args: [--report-level=warning]
+        files: ^[a-z0-9_]+/.*\.rst$
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.16.0
     hooks:
