@@ -44,6 +44,8 @@ ignore = [
     # A type-checking block buys nothing here: odoo.api.Self and ValuesType are
     # annotations the ORM reads while it runs.
     "TC001", "TC002", "TC003",
+    # Odoo stores UTC datetimes without timezone information.
+    "DTZ007",
     # Comment intent, not routines: a docstring on every public method is the
     # opposite of that.
     "D",
@@ -71,6 +73,8 @@ ignore = [
     # A per-item try is the design wherever one record must not sink the batch: the
     # rule asks for the handler outside the loop, which abandons the rest of it.
     "PERF203",
+    # Explicit append loops can be clearer than comprehensions.
+    "PERF401",
 ]
 
 [lint.per-file-ignores]
