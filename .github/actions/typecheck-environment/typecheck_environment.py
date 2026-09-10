@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import os
+import platform
 import re
 import shlex
 import subprocess
+import sysconfig
 import tempfile
 from collections.abc import Iterable, Sequence
 from pathlib import Path
@@ -48,6 +51,83 @@ def validate_typecheck_policy(value: str) -> str:
         choices = ", ".join(sorted(SUPPORTED_TYPECHECK_POLICIES))
         raise ValueError(f"type-check policy must be one of: {choices}")
     return value
+
+
+def resolve_odoo_commit(series: str) -> str:
+    reference = f"refs/heads/{validate_odoo_version(series)}"
+    result = subprocess.run(
+        [
+            "git",
+            "ls-remote",
+            "--exit-code",
+            "https://github.com/odoo/odoo.git",
+            reference,
+        ],
+        check=True,
+        text=True,
+        stdout=subprocess.PIPE,
+    )
+    rows = [line.split() for line in result.stdout.splitlines()]
+    if (
+        len(rows) != 1
+        or len(rows[0]) != 2
+        or rows[0][1] != reference
+        or not re.fullmatch(r"[0-9a-f]{40}", rows[0][0])
+    ):
+        raise ValueError(f"Odoo {series} did not resolve to one commit")
+    return rows[0][0]
+
+
+def command_resolve_odoo(args: argparse.Namespace) -> None:
+    commit = resolve_odoo_commit(args.odoo_version)
+    print(f"::notice title=typecheck environment::Odoo {args.odoo_version}@{commit}")
+    write_outputs(Path(args.output), {"commit": commit})
+
+
+def snapshot_digest(directory: Path, needs_source: bool) -> str:
+    requirements = directory / "requirements.txt"
+    if not requirements.is_file() or not requirements.stat().st_size:
+        raise ValueError("Odoo snapshot has no requirements")
+    if needs_source and not (directory / "odoo/__init__.py").is_file():
+        raise ValueError("Odoo snapshot has no source package")
+    digest = hashlib.sha256()
+    paths = [requirements]
+    if needs_source:
+        paths.extend(sorted((directory / "odoo").rglob("*")))
+    for path in paths:
+        if path.is_symlink():
+            raise ValueError("Odoo snapshot contains a symbolic link")
+        if path.is_file():
+            digest.update(str(path.relative_to(directory)).encode() + b"\0")
+            with path.open("rb") as stream:
+                for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                    digest.update(chunk)
+            digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def command_snapshot(args: argparse.Namespace) -> None:
+    directory = Path(args.directory)
+    needs_source = args.needs_source == "true"
+    metadata = directory / "snapshot.json"
+    try:
+        expected = {
+            "commit": args.commit,
+            "needs-source": needs_source,
+            "sha256": snapshot_digest(directory, needs_source),
+        }
+        if args.record:
+            metadata.write_text(json.dumps(expected, sort_keys=True), encoding="utf-8")
+        else:
+            if json.loads(metadata.read_text(encoding="utf-8")) != expected:
+                raise ValueError("Odoo snapshot identity or contents differ")
+    except (OSError, ValueError) as error:
+        if args.record:
+            raise
+        print(
+            f"::notice title=typecheck environment::Odoo source cache rejected: {error}"
+        )
+        raise SystemExit(1) from error
 
 
 def write_lines(path: Path, entries: Iterable[str]) -> None:
@@ -138,7 +218,12 @@ def is_python_source(path: Path) -> bool:
 
 
 def is_typecheck_configuration(path: Path, layout: str) -> bool:
-    if path in {Path(".env"), Path(".pre-commit-config.yaml"), Path("ty.toml")}:
+    if path in {
+        Path(".env"),
+        Path(".pre-commit-config.yaml"),
+        Path("ty.toml"),
+        Path("uv.toml"),
+    }:
         return True
     if path == Path("pyproject.toml"):
         return True
@@ -275,7 +360,9 @@ def requirement_include(entry: str) -> tuple[str, str] | None:
     return None
 
 
-def legacy_requirements(path: Path, root: Path) -> list[str]:
+def legacy_requirements(
+    path: Path, root: Path, *, files: set[Path] | None = None
+) -> list[str]:
     repository_root = root.resolve()
     dependency_root = path.parent.resolve()
     visited: set[tuple[Path, str]] = set()
@@ -297,6 +384,8 @@ def legacy_requirements(path: Path, root: Path) -> list[str]:
             return
         if not resolved.is_file():
             raise ValueError(f"requirement include does not exist: {resolved}")
+        if files is not None:
+            files.add(resolved)
         stack.add(resolved)
         for entry in logical_requirement_lines(resolved.read_text(encoding="utf-8")):
             include = requirement_include(entry)
@@ -448,8 +537,9 @@ def collect_metadata(
     requirements: list[str] = []
     constraints: list[str] = []
     install_entries: list[str] = []
+    legacy_files: set[Path] = set()
     if legacy is not None:
-        requirements.extend(legacy_requirements(legacy, root))
+        requirements.extend(legacy_requirements(legacy, root, files=legacy_files))
         install_entries.append(f"-r {legacy.resolve()}")
     for pyproject in pyprojects:
         project_requirements, project_constraints = dependency_table(pyproject)
@@ -475,11 +565,112 @@ def collect_metadata(
     (state / "needs-odoo-source").write_text(
         "1" if needs_odoo else "", encoding="utf-8"
     )
+    resolver = {}
+    root_project = root / "pyproject.toml"
+    if root_project.is_file():
+        resolver["tool.uv"] = (
+            tomllib.loads(root_project.read_text(encoding="utf-8"))
+            .get("tool", {})
+            .get("uv", {})
+        )
+    if (root / "uv.toml").is_file():
+        resolver["uv.toml"] = (root / "uv.toml").read_text(encoding="utf-8")
+    dependency_inputs = {
+        "layout": resolved_layout,
+        "requirements": requirements,
+        "constraints": constraints,
+        "legacy": {
+            str(path.relative_to(root.resolve())): path.read_text(encoding="utf-8")
+            for path in sorted(legacy_files)
+        },
+        "resolver": resolver,
+    }
+    (state / "dependency-inputs.json").write_text(
+        json.dumps(dependency_inputs, sort_keys=True), encoding="utf-8"
+    )
     return {
         "layout": resolved_layout,
         "odoo-version": odoo_version,
         "python-version": python_version,
+        "needs-odoo-source": str(needs_odoo).lower(),
     }
+
+
+def digest_data(value: object) -> str:
+    return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
+
+
+def dependency_cache_keys(
+    state: Path, series: str, compatibility: object
+) -> dict[str, str]:
+    build_constraints = (state / "build-constraints.txt").read_text(encoding="utf-8")
+    base_digest = digest_data(
+        [
+            (state / "odoo-requirements.txt").read_text(encoding="utf-8"),
+            build_constraints,
+        ]
+    )
+    private_path = state / "private-sources.json"
+    private = json.loads(private_path.read_text()) if private_path.is_file() else []
+    private_revisions = sorted(
+        (source["repository"], source["commit"], sorted(source["names"]))
+        for source in private
+    )
+    dependency_inputs = json.loads((state / "dependency-inputs.json").read_text())
+    project_digest = digest_data(
+        [
+            dependency_inputs,
+            private_revisions,
+        ]
+    )
+    boundary = digest_data(
+        [compatibility, build_constraints, dependency_inputs["resolver"]]
+    )
+    prefix = f"typecheck-wheels-v1-{boundary}-{validate_odoo_version(series)}-"
+    base_prefix = f"{prefix}{base_digest}-"
+    return {
+        "key": f"{base_prefix}{project_digest}",
+        "base-prefix": base_prefix,
+        "compatibility-prefix": prefix,
+        "base-digest": base_digest,
+        "project-digest": project_digest,
+    }
+
+
+def command_cache_keys(args: argparse.Namespace) -> None:
+    native = subprocess.check_output(
+        [
+            "dpkg-query",
+            "--show",
+            "--showformat=${binary:Package}=${Version}\\n",
+            "libc6",
+            "libldap*",
+            "libsasl2*",
+            "libpq*",
+            "libssl*",
+        ],
+        text=True,
+    )
+    compiler = subprocess.check_output(["cc", "--version"], text=True)
+    compatibility = {
+        "python": platform.python_version(),
+        "implementation": platform.python_implementation(),
+        "platform": sysconfig.get_platform(),
+        "soabi": sysconfig.get_config_var("SOABI"),
+        "os": Path("/etc/os-release").read_text(),
+        "native": native,
+        "compiler": compiler,
+        "runner-image": os.environ.get("ImageVersion", ""),
+        "build-environment": {
+            name: os.environ.get(name, "")
+            for name in ("CC", "CXX", "CFLAGS", "CXXFLAGS", "CPPFLAGS", "LDFLAGS")
+        },
+    }
+    values = dependency_cache_keys(
+        Path(args.state_dir), args.odoo_version, compatibility
+    )
+    write_outputs(Path(args.output), values)
+    print(f"::notice title=typecheck environment::dependency cache key {values['key']}")
 
 
 def requirements_at(directory: Path, commit: str) -> list[str]:
@@ -796,6 +987,24 @@ def build_parser() -> argparse.ArgumentParser:
     collect.add_argument("--state-dir", required=True)
     collect.add_argument("--output", required=True)
     collect.set_defaults(function=command_collect)
+
+    resolve = subparsers.add_parser("resolve-odoo")
+    resolve.add_argument("--odoo-version", required=True)
+    resolve.add_argument("--output", required=True)
+    resolve.set_defaults(function=command_resolve_odoo)
+
+    snapshot = subparsers.add_parser("snapshot")
+    snapshot.add_argument("--directory", required=True)
+    snapshot.add_argument("--commit", required=True)
+    snapshot.add_argument("--needs-source", choices=("true", "false"), required=True)
+    snapshot.add_argument("--record", action="store_true")
+    snapshot.set_defaults(function=command_snapshot)
+
+    cache_keys = subparsers.add_parser("cache-keys")
+    cache_keys.add_argument("--state-dir", required=True)
+    cache_keys.add_argument("--odoo-version", required=True)
+    cache_keys.add_argument("--output", required=True)
+    cache_keys.set_defaults(function=command_cache_keys)
 
     fetch = subparsers.add_parser("fetch-private")
     fetch.add_argument("--state-dir", required=True)
