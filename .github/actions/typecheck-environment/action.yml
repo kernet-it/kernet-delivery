@@ -91,24 +91,15 @@ runs:
         --state-dir "$STATE"
         --output "$GITHUB_OUTPUT"
 
-    - name: Set up uv with dependency caching
+    - name: Set up uv and cache tooling
       if: steps.detect.outputs.required == 'true'
       uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
       with:
         enable-cache: true
         cache-python: true
-        cache-suffix: typecheck-${{ steps.metadata.outputs.odoo-version }}-${{ steps.metadata.outputs.python-version }}
-        cache-dependency-glob: |
-          .env
-          .pre-commit-config.yaml
-          ty.toml
-          dependencies/**/*
-          pyproject.toml
-          */pyproject.toml
-          addons/*/pyproject.toml
-          extra-addons/*/pyproject.toml
-          !oca/**/pyproject.toml
-          !kernet/**/pyproject.toml
+        cache-suffix: typecheck-tools-v1-${{ steps.metadata.outputs.python-version }}
+        cache-dependency-glob: ""
+        cache-local-path: ${{ runner.temp }}/kernet-typecheck-tools
         ignore-nothing-to-cache: true
 
     - name: Select active dependencies
@@ -122,6 +113,9 @@ runs:
       run: |
         uv venv --python "$PYTHON_VERSION" .venv
         uv venv --python "$PYTHON_VERSION" "$STATE/tooling"
+        uv --version
+        "$STATE/tooling/bin/python" -I -c 'import platform; print(platform.python_implementation(), platform.python_version(), platform.machine())'
+        cat /etc/os-release
         uv pip install -p "$STATE/tooling" packaging \
           "tomli; python_version < '3.11'"
         "$STATE/tooling/bin/python" -I "$ACTION_SCRIPT" activate --state-dir "$STATE" \
@@ -174,37 +168,123 @@ runs:
         /usr/bin/python3 -I -S "$ACTION_SCRIPT" materialize-private
         --state-dir "$STATE"
 
+    - name: Install system packages
+      if: steps.detect.outputs.required == 'true'
+      shell: bash
+      env:
+        TIMEFORMAT: "typecheck phase=system-packages seconds=%R"
+      run: time sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
+
+    - name: Resolve the Odoo source revision
+      if: steps.detect.outputs.required == 'true'
+      id: odoo
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        ODOO_VERSION: ${{ steps.metadata.outputs.odoo-version }}
+        TIMEFORMAT: "typecheck phase=odoo-resolution seconds=%R"
+      run: |
+        time /usr/bin/python3 -I -S "$ACTION_SCRIPT" resolve-odoo \
+          --odoo-version "$ODOO_VERSION" --output "$GITHUB_OUTPUT"
+
+    - name: Restore Odoo source
+      if: steps.detect.outputs.required == 'true'
+      id: source-cache
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ runner.temp }}/kernet-odoo-source
+        key: odoo-source-v1-${{ steps.metadata.outputs.odoo-version }}-${{ steps.odoo.outputs.commit }}-${{ steps.metadata.outputs.needs-odoo-source }}
+
+    - name: Prepare the Odoo source snapshot
+      if: steps.detect.outputs.required == 'true'
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        ODOO_COMMIT: ${{ steps.odoo.outputs.commit }}
+        NEEDS_SOURCE: ${{ steps.metadata.outputs.needs-odoo-source }}
+        SOURCE_CACHE_HIT: ${{ steps.source-cache.outputs.cache-hit }}
+        SNAPSHOT: ${{ runner.temp }}/kernet-odoo-source
+        STATE: ${{ steps.detect.outputs.state-directory }}
+        TIMEFORMAT: "typecheck phase=odoo-source seconds=%R"
+      run: |
+        echo "Odoo source cache hit: ${SOURCE_CACHE_HIT:-false}"
+        snapshot_args=(--directory "$SNAPSHOT" --commit "$ODOO_COMMIT" --needs-source "$NEEDS_SOURCE")
+        if ! /usr/bin/python3 -I -S "$ACTION_SCRIPT" snapshot "${snapshot_args[@]}"; then
+          rm -rf -- "$SNAPSHOT"
+          mkdir -p "$SNAPSHOT"
+          time curl --retry 3 --retry-all-errors -fsSL \
+            -o "$SNAPSHOT/requirements.txt" \
+            "https://raw.githubusercontent.com/odoo/odoo/$ODOO_COMMIT/requirements.txt"
+          if [ "$NEEDS_SOURCE" = true ]; then
+            time curl --retry 3 --retry-all-errors -fsSL \
+              "https://github.com/odoo/odoo/archive/$ODOO_COMMIT.tar.gz" \
+              | tar -xz -C "$SNAPSHOT" --strip-components=1 "odoo-$ODOO_COMMIT/odoo"
+          fi
+          /usr/bin/python3 -I -S "$ACTION_SCRIPT" snapshot "${snapshot_args[@]}" --record
+        fi
+        cp "$SNAPSHOT/requirements.txt" "$STATE/odoo-requirements.txt"
+
+    - name: Save the Odoo source snapshot
+      if: steps.detect.outputs.required == 'true' && steps.source-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ runner.temp }}/kernet-odoo-source
+        key: ${{ steps.source-cache.outputs.cache-primary-key }}
+
+    - name: Prepare dependency cache keys
+      if: steps.detect.outputs.required == 'true'
+      id: dependency-cache-key
+      shell: bash
+      env:
+        ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
+        STATE: ${{ steps.detect.outputs.state-directory }}
+        ODOO_VERSION: ${{ steps.metadata.outputs.odoo-version }}
+      run: |
+        echo 'setuptools<82' > "$STATE/build-constraints.txt"
+        sed -i \
+          's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' \
+          "$STATE/odoo-requirements.txt"
+        "$STATE/tooling/bin/python" -I "$ACTION_SCRIPT" cache-keys \
+          --state-dir "$STATE" --odoo-version "$ODOO_VERSION" --output "$GITHUB_OUTPUT"
+
+    - name: Restore dependency wheels
+      if: steps.detect.outputs.required == 'true'
+      id: dependency-cache
+      uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ runner.temp }}/kernet-typecheck-dependencies
+        key: ${{ steps.dependency-cache-key.outputs.key }}
+        restore-keys: |
+          ${{ steps.dependency-cache-key.outputs.base-prefix }}
+          ${{ steps.dependency-cache-key.outputs.compatibility-prefix }}
+
     - name: Install the Odoo base environment
       if: steps.detect.outputs.required == 'true'
       shell: bash
       env:
         ACTION_SCRIPT: ${{ github.action_path }}/typecheck_environment.py
-        ODOO_VERSION: ${{ steps.metadata.outputs.odoo-version }}
         STATE: ${{ steps.detect.outputs.state-directory }}
+        UV_CACHE_DIR: ${{ runner.temp }}/kernet-typecheck-dependencies
+        TIMEFORMAT: "typecheck phase=odoo-dependencies seconds=%R"
       run: |
-        sudo apt-get install -y -qq libldap2-dev libsasl2-dev libpq-dev
-        echo 'setuptools<82' > "$STATE/build-constraints.txt"
-        curl --retry 3 --retry-all-errors -fsSL -o "$STATE/odoo-requirements.txt" \
-          "https://raw.githubusercontent.com/odoo/odoo/$ODOO_VERSION/requirements.txt"
-        sed -i \
-          's/gevent==21\.8\.0/gevent==22.10.2/; s/greenlet==1\.1\.2/greenlet==2.0.2/' \
-          "$STATE/odoo-requirements.txt"
-        uv pip install -p .venv \
+        time uv pip install -p .venv \
           --build-constraints "$STATE/build-constraints.txt" \
           -r "$STATE/odoo-requirements.txt"
         uv pip freeze -p .venv > "$STATE/odoo-base-freeze.txt"
         /usr/bin/python3 -I -S "$ACTION_SCRIPT" base-constraints \
           --state-dir "$STATE"
 
+    - name: Expose Odoo source
+      if: steps.detect.outputs.required == 'true'
+      shell: bash
+      env:
+        SNAPSHOT: ${{ runner.temp }}/kernet-odoo-source
+        STATE: ${{ steps.detect.outputs.state-directory }}
+      run: |
         if [ -s "$STATE/needs-odoo-source" ]; then
-          mkdir "$STATE/odoo-source"
-          curl --retry 3 --retry-all-errors -fsSL \
-            "https://github.com/odoo/odoo/archive/refs/heads/$ODOO_VERSION.tar.gz" \
-            | tar -xz -C "$STATE/odoo-source" --strip-components=1 \
-              "odoo-$ODOO_VERSION/odoo"
           site=$(.venv/bin/python -I -c \
             'import sysconfig; print(sysconfig.get_paths()["purelib"])')
-          echo "$STATE/odoo-source" > "$site/_odoo_src.pth"
+          echo "$SNAPSHOT" > "$site/_odoo_src.pth"
         fi
 
     - name: Install declared dependencies
@@ -212,13 +292,15 @@ runs:
       shell: bash
       env:
         STATE: ${{ steps.detect.outputs.state-directory }}
+        UV_CACHE_DIR: ${{ runner.temp }}/kernet-typecheck-dependencies
+        TIMEFORMAT: "typecheck phase=project-dependencies seconds=%R"
       run: |
         if [ -s "$STATE/requirements.txt" ]; then
           override_args=()
           if [ -s "$STATE/private-overrides.txt" ]; then
             override_args=(--overrides "$STATE/private-overrides.txt")
           fi
-          uv pip install -p .venv \
+          time uv pip install -p .venv \
             -c "$STATE/constraints.txt" \
             -c "$STATE/odoo-base-constraints.txt" \
             --build-constraints "$STATE/build-constraints.txt" \
@@ -226,3 +308,17 @@ runs:
             -r "$STATE/requirements.txt"
         fi
         uv pip check -p .venv
+
+    - name: Prune dependency wheels
+      if: steps.detect.outputs.required == 'true' && steps.dependency-cache.outputs.cache-hit != 'true'
+      shell: bash
+      env:
+        UV_CACHE_DIR: ${{ runner.temp }}/kernet-typecheck-dependencies
+      run: uv cache prune --ci
+
+    - name: Save dependency wheels
+      if: steps.detect.outputs.required == 'true' && steps.dependency-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      with:
+        path: ${{ runner.temp }}/kernet-typecheck-dependencies
+        key: ${{ steps.dependency-cache-key.outputs.key }}
