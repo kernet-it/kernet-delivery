@@ -85,10 +85,19 @@ def command_resolve_odoo(args: argparse.Namespace) -> None:
 
 
 def snapshot_digest(directory: Path, needs_source: bool) -> str:
+    allowed = {"requirements.txt", "snapshot.json"}
+    if needs_source:
+        allowed.add("odoo")
+    if directory.is_dir():
+        for path in directory.iterdir():
+            if path.name not in allowed:
+                raise ValueError("Odoo snapshot contains an unexpected root entry")
+            if path.is_symlink():
+                raise ValueError("Odoo snapshot contains a symbolic link")
     requirements = directory / "requirements.txt"
     if not requirements.is_file() or not requirements.stat().st_size:
         raise ValueError("Odoo snapshot has no requirements")
-    if needs_source and not (directory / "odoo/__init__.py").is_file():
+    if needs_source and not (directory / "odoo/release.py").is_file():
         raise ValueError("Odoo snapshot has no source package")
     digest = hashlib.sha256()
     paths = [requirements]
