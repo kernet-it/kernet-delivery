@@ -1,6 +1,6 @@
 name: addons
 
-# Vendored copy of the kernet-ci@v2 check job
+# Vendored copy of the kernet-ci@v3 check job
 # .github/workflows/addons.yml, rendered only when standalone_ci: this repo
 # is PUBLIC and GitHub forbids public repos from calling reusable workflows
 # that live in private repos. ci.yml calls this local copy with the same
@@ -66,10 +66,18 @@ jobs:
         uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           enable-cache: false
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+      - name: Identify the pre-commit runtime
+        id: hook-runtime
+        run: |
+          runtime=$(printf '%s\n' "${ImageOS:?}" "${ImageVersion:?}" "$(python3 --version)" | sha256sum | cut -d ' ' -f 1)
+          echo "key=$runtime" >> "$GITHUB_OUTPUT"
+      - name: Restore pre-commit environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/.cache/pre-commit
-          key: pre-commit-${{ runner.os }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          key: pre-commit-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.hook-runtime.outputs.key }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.hook-runtime.outputs.key }}-
       - name: ty (all files after environment changes)
         if: steps.typecheck.outputs.mode == 'all'
         run: uvx pre-commit run ty --hook-stage manual --all-files --show-diff-on-failure
