@@ -48,9 +48,11 @@ repos:
           - "prettier@3.8.3"
           - "@prettier/plugin-xml@3.4.2"
         # Addon dirs only (they sit at the repo root); root-level generated files
-        # (README, workflow yml) and the per-addon copier answers aren't ours to format.
+        # (README, workflow yml, the docs/ guides) and the per-addon copier answers
+        # aren't ours to format. The guides render names of varying length into prose,
+        # which prettier's fixed width would reflow differently for each repository.
         files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|xml|ya?ml)$
-        exclude: \.copier-answers\.yml$
+        exclude: (\.copier-answers\.yml|^docs/(functional|technical)/README\.md)$
   - repo: https://github.com/rstcheck/rstcheck
     rev: v6.3.0
     hooks:
@@ -66,7 +68,7 @@ repos:
         args: [--check]
         exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
   - repo: https://github.com/OCA/pylint-odoo
-    rev: v10.0.2
+    rev: v10.0.4
     hooks:
       - id: pylint_odoo
         args: [--rcfile=.pylintrc]

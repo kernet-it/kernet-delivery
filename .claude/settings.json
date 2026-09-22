@@ -1,7 +1,8 @@
 {
   "enabledPlugins": {
     "odoo-18@kernet": true,
-    "odoo@kernet": true
+    "odoo@kernet": true,
+    "kernet@kernet": true
   },
   "extraKnownMarketplaces": {
     "kernet": {
