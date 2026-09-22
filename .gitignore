@@ -1,0 +1,21 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv
+.ruff_cache/
+.pytest_cache/
+*.log
+
+node_modules/
+
+.DS_Store
+*~
+*.swp
+.zed
+.vscode
+
+# AI coding assistants: ignore personal/local settings only. Team-shared config
+# stays committed (.claude/settings.json, CLAUDE.md, AGENTS.md, .codex/config.toml).
+.claude/settings.local.json
+CLAUDE.local.md
+AGENTS.override.md

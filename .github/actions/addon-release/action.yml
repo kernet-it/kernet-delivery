@@ -1,0 +1,35 @@
+name: addon-release
+description: Require a version increase and matching changelog for changed Odoo addons.
+inputs:
+  layout:
+    description: "Repository layout: addon-group or project."
+    required: true
+  base:
+    description: Base commit used to find the pull request changes.
+    required: false
+    default: ""
+  head:
+    description: Head commit containing the proposed addon releases.
+    required: false
+    default: HEAD
+  odoo-series:
+    description: Odoo series for an addon-group repository, for example 18.0.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Validate addon release metadata
+      shell: bash
+      env:
+        ADDON_RELEASE_BASE: ${{ inputs.base }}
+        ADDON_RELEASE_HEAD: ${{ inputs.head }}
+        ADDON_RELEASE_LAYOUT: ${{ inputs.layout }}
+        ADDON_RELEASE_SERIES: ${{ inputs.odoo-series }}
+      run: >-
+        python3 "$GITHUB_ACTION_PATH/check_addon_releases.py"
+        --repository "$GITHUB_WORKSPACE"
+        --layout "$ADDON_RELEASE_LAYOUT"
+        --base "$ADDON_RELEASE_BASE"
+        --head "$ADDON_RELEASE_HEAD"
+        --series "$ADDON_RELEASE_SERIES"

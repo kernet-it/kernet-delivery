@@ -1,0 +1,95 @@
+# Check gate only: every hook reports and FAILS, nothing here modifies or stages files.
+# Mirrors project-template's dev tooling; addons live at the REPO ROOT here, so the
+# js/asset hooks have no addons/ path prefix. The ty hook runs via uvx, so `uv` must
+# be installed.
+minimum_pre_commit_version: "3.0.0"
+default_install_hook_types: [pre-commit]
+# Hook environments follow whatever `python3` resolves to, not the interpreter
+# pre-commit happens to run under: one Odoo 15 environment on a machine is enough
+# to make uv hand every tool a 3.8 that the hooks no longer support.
+default_language_version:
+  python: python3
+repos:
+  - repo: local
+    hooks:
+      - id: forbidden-files
+        name: forbidden files (.rej copier rejects)
+        entry: found forbidden files; review, fix, and remove them
+        language: fail
+        files: "\\.rej$"
+      - id: en-po-files
+        name: en.po files cannot exist
+        entry: found an en.po file
+        language: fail
+        files: '[a-zA-Z0-9_]*/i18n/en\.po$'
+      - id: ty
+        name: ty (type check)
+        # NOT the official ty-pre-commit hook: its `uv check` runs with the
+        # pre-commit hook env active, which beats ty's repo-.venv discovery, so
+        # third-party imports stop resolving (CI's venv bootstrap relies on it).
+        # Pinning environment.python in ty.toml restores that but hard-errors
+        # whenever .venv is missing. Pin ty in lockstep with project-template.
+        # CI provides the Odoo type-check environment explicitly.
+        entry: uvx ty@0.0.63 check
+        language: system
+        stages: [manual]
+        types: [python]
+        require_serial: true
+        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
+      - id: prettier
+        name: prettier (check)
+        # mirrors-prettier hardcodes --write, so run locally in check mode. The XML
+        # plugin rides this hook's environment: prettier 3 will not resolve a bare
+        # plugin name without a repo node_modules, so prettier.config.cjs resolves
+        # it through the NODE_PATH pre-commit exports here.
+        entry: prettier --check --ignore-unknown
+        language: node
+        additional_dependencies:
+          - "prettier@3.8.3"
+          - "@prettier/plugin-xml@3.4.2"
+        # Addon dirs only (they sit at the repo root); root-level generated files
+        # (README, workflow yml, the docs/ guides) and the per-addon copier answers
+        # aren't ours to format. The guides render names of varying length into prose,
+        # which prettier's fixed width would reflow differently for each repository.
+        files: ^[a-z0-9_]+/.*\.(css|html|js|json|jsx|less|md|scss|ts|xml|ya?ml)$
+        exclude: (\.copier-answers\.yml|^docs/(functional|technical)/README\.md)$
+  - repo: https://github.com/rstcheck/rstcheck
+    rev: v6.3.0
+    hooks:
+      - id: rstcheck
+        args: [--report-level=warning]
+        files: ^[a-z0-9_]+/.*\.rst$
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.0
+    hooks:
+      - id: ruff-check
+        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
+      - id: ruff-format
+        args: [--check]
+        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
+  - repo: https://github.com/OCA/pylint-odoo
+    rev: v10.0.4
+    hooks:
+      - id: pylint_odoo
+        args: [--rcfile=.pylintrc]
+        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.39.1
+    hooks:
+      - id: eslint
+        additional_dependencies:
+          - "eslint@9.39.1"
+          - "eslint-plugin-jsdoc@50.8.0"
+          - "globals@16.5.0"
+        files: ^[a-z0-9_]+/.*\.(js|jsx)$
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-symlinks
+      - id: debug-statements
+      - id: check-xml          # XML well-formedness, ahead of and beside the formatter
+
+# The template writes nothing below this line. Repo-local hooks appended here
+# survive every copier update; template-owned hooks above are not for editing.

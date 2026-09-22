@@ -1,0 +1,111 @@
+name: addons
+
+# Vendored copy of the kernet-ci@v3 check job
+# .github/workflows/addons.yml, rendered only when standalone_ci: this repo
+# is PUBLIC and GitHub forbids public repos from calling reusable workflows
+# that live in private repos. ci.yml calls this local copy with the same
+# caller shape, so the required "ci / check" context is unchanged.
+# KEEP IN SYNC: align this job and the typecheck-environment action with the
+# kernet-ci release used by private addon repositories.
+
+on:
+  workflow_call:
+    inputs:
+      odoo_version:
+        description: Odoo version branch override for stacked or feature-branch pull requests.
+        type: string
+        default: ""
+
+env:
+  ODOO_VERSION_OVERRIDE: ${{ inputs.odoo_version }}
+
+jobs:
+  check:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          # pre-commit --from-ref/--to-ref needs both diff endpoints in local
+          # history; the default depth-1 checkout has only the tip.
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve Odoo version
+        id: odoo
+        shell: bash
+        run: |
+          version="${ODOO_VERSION_OVERRIDE:-${GITHUB_BASE_REF:-$GITHUB_REF_NAME}}"
+          if [[ ! "$version" =~ ^[0-9]+\.0$ ]]; then
+            echo "::error title=addons.yml::Odoo version must use NN.0 format"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Check addon releases
+        uses: $/.github/actions/addon-release
+        with:
+          layout: addon-group
+          odoo-series: ${{ steps.odoo.outputs.version }}
+          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+      - name: Prepare the ty environment when needed
+        id: typecheck
+        uses: $/.github/actions/typecheck-environment
+        with:
+          layout: addon-group
+          odoo-version: ${{ steps.odoo.outputs.version }}
+          typecheck-policy: strict
+          base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          github-app-client-id: ${{ secrets.KERNET_CI_APP_ID }}
+          github-app-private-key: ${{ secrets.KERNET_CI_APP_PRIVATE_KEY }}
+      - name: Set up uv for checks without ty preparation
+        if: steps.typecheck.outputs.required != 'true'
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          enable-cache: false
+      - name: Identify the pre-commit runtime
+        id: hook-runtime
+        run: |
+          runtime=$(printf '%s\n' "${ImageOS:?}" "${ImageVersion:?}" "$(python3 --version)" | sha256sum | cut -d ' ' -f 1)
+          echo "key=$runtime" >> "$GITHUB_OUTPUT"
+      - name: Restore pre-commit environments
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.hook-runtime.outputs.key }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          restore-keys: |
+            pre-commit-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.hook-runtime.outputs.key }}-
+      - name: ty (all files after environment changes)
+        if: steps.typecheck.outputs.mode == 'all'
+        run: uvx pre-commit run ty --hook-stage manual --all-files --show-diff-on-failure
+      - name: ty (changed files, manual stage)
+        if: steps.typecheck.outputs.mode == 'changed'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+        run: |
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
+            uvx pre-commit run ty --hook-stage manual --from-ref "$BASE" --to-ref "$HEAD" --show-diff-on-failure
+          else
+            echo "No usable diff base (BASE='$BASE'); type-checking all files."
+            uvx pre-commit run ty --hook-stage manual --all-files --show-diff-on-failure
+          fi
+      - name: pre-commit (changed files only)
+        env:
+          # PR: diff the base branch against the PR head. Push/dispatch: diff the
+          # previous tip (event.before) against this commit. A missing or all-zero
+          # base — new branch, first push, force-push, manual dispatch — has no diff
+          # baseline, so fall back to linting everything.
+          BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
+          SKIP: ty
+        run: |
+          if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ] && git rev-parse -q --verify "$BASE^{commit}" >/dev/null; then
+            uvx pre-commit run --from-ref "$BASE" --to-ref "$HEAD" --show-diff-on-failure
+          else
+            echo "No usable diff base (BASE='$BASE'); linting all files."
+            uvx pre-commit run --all-files --show-diff-on-failure
+          fi

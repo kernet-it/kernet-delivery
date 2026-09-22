@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "odoo-20@kernet": true,
+    "odoo@kernet": true,
+    "kernet@kernet": true
+  },
+  "extraKnownMarketplaces": {
+    "kernet": {
+      "source": {
+        "source": "github",
+        "repo": "kernet-it/agents"
+      }
+    }
+  }
+}

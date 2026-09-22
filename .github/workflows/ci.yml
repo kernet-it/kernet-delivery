@@ -1,0 +1,25 @@
+name: ci
+
+on:
+  push:
+    branches: ["*.0"] # branch-per-version: 16.0, 17.0, ...
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    # Public repo: GitHub forbids calling reusable workflows that live in
+    # private repos (kernet-ci), so the check job is vendored next to this
+    # file — same caller shape keeps the required "ci / check" context.
+    uses: ./.github/workflows/addons.yml
+    with:
+      odoo_version: "20.0"
+    secrets: inherit
