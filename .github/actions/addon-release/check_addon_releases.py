@@ -148,7 +148,7 @@ def numeric_parts(version: str) -> list[int]:
 
 
 def normalize_odoo_version(version: object, series: str) -> tuple[int, ...]:
-    """Apply the manifest-version rules used by Odoo 16 through 19."""
+    """Apply the manifest-version rules used by Odoo 16 and later."""
 
     if not isinstance(version, str) or not version.strip():
         raise VersionFailure("manifest version must be a non-empty string")
