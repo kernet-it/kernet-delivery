@@ -52,3 +52,6 @@ Read [the technical guide](docs/technical/README.md) for setup, validation and
 release requirements. Use the matching Odoo framework guidance. Keep changes
 within the requested scope and preserve unrelated work. A static CI pass does not
 prove addon installation or runtime behavior; report the validation actually run.
+
+A functional addon change increases the manifest version and adds the same version
+at the top of `readme/HISTORY.rst`.
