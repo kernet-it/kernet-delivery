@@ -18,6 +18,9 @@ license, and wires the manifest for you.
 
 ## Releasing addon changes
 
+This public repository keeps the manual release contract. Kbot, the Kernet release
+bot, does not serve public repositories.
+
 A functional change to an addon increases its canonical
 `20.0.x.y.z` version in `__manifest__.py` and adds that same
 version as the first entry in `readme/HISTORY.rst`. The developer commits both
@@ -32,6 +35,10 @@ history file the first time it has a functional change; no historical backfill
 is required. If legacy base metadata cannot be compared, that first change
 adopts a canonical proposed version; the proposed manifest must still match
 this branch's Odoo series.
+
+`addon-template` generates a release note fragment in `readme/newsfragments/` for
+a new addon. This repository does not use fragments: delete it and write the
+initial entry in `readme/HISTORY.rst`.
 
 ## How these addons reach production
 
