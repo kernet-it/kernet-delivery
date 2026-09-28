@@ -41,7 +41,19 @@ whool writes the rest when it builds the package:
 
 - The version is the manifest `version`. On a commit after the last change of that
   version, whool adds the number of commits that changed the addon since then, for
-  example `18.0.1.2.0.3`.
+  example `18.0.1.2.0.3`. whool reads the Odoo series from the start
+  of the version. A short legacy version, such as `1.0` or `1.0.1`, names no series;
+  Odoo and the release check read it as a version of this branch, and a manifest
+  without a version as `1.0`. For such an addon the script writes
+  `odoo_series_override = "18.0"` in `[tool.whool]`, so that whool
+  builds the package for 18.0. The package version stays the short
+  version, such as `1.0.1`, and a manifest without a version gives `0.0.0`, until the
+  first release of the addon writes the full `18.0.x.y.z` version. The
+  version range that other addons require for this addon does not accept a short
+  version; in this workspace their `workspace` source replaces the range. With a full
+  version, `--write` removes the key. The check accepts a key of this series that
+  stays next to a full version, because a release commit need not run the script;
+  a key of another series fails the check.
 - The dependencies are `odoo==18.0.*`, then
   `odoo-addon-<name>==18.0.*` for each addon in
   `depends` that is not an Odoo core addon, then each name of
@@ -54,9 +66,10 @@ whool writes the rest when it builds the package:
 whool does not read `requires-python`: uv uses it for the workspace only. The wheel has
 the bound of whool for 18.0, `>=3.10`.
 
-The script `.github/scripts/addon_pyproject.py` owns the three tables above, and the
-`members` of the root `pyproject.toml`: the list of addons. It edits TOML with
-tomlkit, so every other table and comment stays, such as `[tool.whool]` or
+The script `.github/scripts/addon_pyproject.py` owns the three tables above, the key
+`odoo_series_override` of `[tool.whool]`, and the `members` of the root
+`pyproject.toml`: the list of addons. It edits TOML with tomlkit, so every other
+table, key and comment stays, such as the other keys of `[tool.whool]` or
 `[tool.kernet.dependencies]`. The pre-commit hook `addon-pyproject` runs it on each
 commit and in the changed-file gate of CI, also for a commit that only deletes
 files. It fails when an addon has no `pyproject.toml`, when its tables differ from the
@@ -83,10 +96,27 @@ it is a release of the addon.
 member, and the `dev` dependency group adds Odoo and the tools. Then:
 
 ```sh
-uv sync                  # .venv with Odoo, each addon as an editable package, ruff and ty
+uv sync                  # .venv with Odoo, the dependencies of each addon, ruff and ty
 uvx ty@0.0.63 check      # ty reads .venv, also for odoo.addons.*
-.venv/bin/odoo -d <database> -i <addon> --stop-after-init
+.venv/bin/odoo --addons-path=. -d <database> -i <addon> --stop-after-init
+.venv/bin/odoo --addons-path=. -d <database> -u <addon> --test-enable \
+  --test-tags=/<addon> --stop-after-init
 ```
+
+`uv sync` installs the dependencies of each addon, but not the addon:
+`[tool.uv] package = false` in `<addon>/pyproject.toml` says so, and a project that
+takes the addon from Git still installs it. Odoo takes the addons from the checkout,
+so give it `--addons-path=.`. An editable install would not do: the editable build of
+whool links `<addon>/build/__editable__/odoo/addons/<addon>` back to the addon, and
+Odoo follows that link without end when it scans the files of the addon, for example
+for the JavaScript bundles before the browser tests ("Failed to initialize
+database"). A checkout that `uv sync` made with an earlier template still has these
+links: delete them once with `rm -rf */build`.
+
+ty resolves `odoo.addons.*` only for the addons in the Odoo package: Odoo adds the other
+addons to that namespace at run time, which ty does not follow, so `ty.toml` lets
+`odoo.addons.**` stay unresolved, and ty does not report a misspelled import of an
+addon of this repository or of another one.
 
 The environment follows the branch, and the repository has no lock: `uv.lock` is
 ignored. Odoo comes from the nightly source archive of the 18.0 branch,
