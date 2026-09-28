@@ -14,7 +14,133 @@ uvx copier copy gh:kernet-it/addon-template .
 ```
 
 The scaffold prompts for the name (rendered as `ke_<name>`), folders and
-license, and wires the manifest for you.
+license, and wires the manifest for you. Then add the addon to the workspace with
+`uv run --script .github/scripts/addon_pyproject.py --write` (see below).
+
+## Addon packages
+
+Each addon is a Python package, `odoo-addon-<addon>`, that
+[whool](https://github.com/sbidoul/whool) builds from the manifest, as OCA does.
+`<addon>/pyproject.toml` holds only what the manifest cannot give:
+
+```toml
+[build-system]
+requires = ["whool"]
+build-backend = "whool.buildapi"
+
+[project]
+name = "odoo-addon-ke_thing"
+requires-python = ">=3.10"
+dynamic = ["version", "dependencies", "description", "readme", "license", "authors", "classifiers", "urls"]
+
+[tool.uv.sources]
+odoo-addon-ke_sibling = { workspace = true }
+```
+
+whool writes the rest when it builds the package:
+
+- The version is the manifest `version`. On a commit after the last change of that
+  version, whool adds the number of commits that changed the addon since then, for
+  example `16.0.1.2.0.3`. whool reads the Odoo series from the start
+  of the version. A short legacy version, such as `1.0` or `1.0.1`, names no series;
+  Odoo and the release check read it as a version of this branch, and a manifest
+  without a version as `1.0`. For such an addon the script writes
+  `odoo_series_override = "16.0"` in `[tool.whool]`, so that whool
+  builds the package for 16.0. The package version stays the short
+  version, such as `1.0.1`, and a manifest without a version gives `0.0.0`, until the
+  first release of the addon writes the full `16.0.x.y.z` version. The
+  version range that other addons require for this addon does not accept a short
+  version; in this workspace their `workspace` source replaces the range. With a full
+  version, `--write` removes the key. The check accepts a key of this series that
+  stays next to a full version, because a release commit need not run the script;
+  a key of another series fails the check.
+- The dependencies are `odoo>=16.0a,<16.1dev`, then
+  `odoo-addon-<name>>=16.0dev,<16.1dev` for each addon in
+  `depends` that is not an Odoo core addon, then each name of
+  `external_dependencies["python"]` as it is. Write distribution names there, such as
+  `python-dateutil`, not import names. To add a version specifier or to replace a
+  name, use `external_dependencies_override` in `[tool.whool]`.
+- The summary, the license, the author, the website and the README come from the
+  manifest and the addon README.
+
+whool does not read `requires-python`: uv uses it for the workspace only. The wheel has
+the bound of whool for 16.0, `>=3.10`.
+
+The script `.github/scripts/addon_pyproject.py` owns the three tables above, the key
+`odoo_series_override` of `[tool.whool]`, and the `members` of the root
+`pyproject.toml`: the list of addons. It edits TOML with tomlkit, so every other
+table, key and comment stays, such as the other keys of `[tool.whool]` or
+`[tool.kernet.dependencies]`. The pre-commit hook `addon-pyproject` runs it on each
+commit and in the changed-file gate of CI, also for a commit that only deletes
+files. It fails when an addon has no `pyproject.toml`, when its tables differ from the
+manifest (a new sibling in `depends` needs its `workspace` source), or when `members`
+is not the list of addons. Then write them:
+
+```sh
+uv run --script .github/scripts/addon_pyproject.py --write
+```
+
+The script needs tomlkit. The hook runs it with the tomlkit that pre-commit installs
+in the hook environment, from `additional_dependencies`; by hand, `uv run --script`
+installs the version that the inline metadata of the script names. Both keep the same
+pin. On a machine or a CI runner with an empty cache, the first run of either
+downloads tomlkit from the package index, as each other hook does.
+
+The release check counts `<addon>/pyproject.toml` as a part of the addon: a change to
+it is a release of the addon.
+
+## Development environment
+
+`pyproject.toml` at the root makes the repository a
+[uv workspace](https://docs.astral.sh/uv/concepts/projects/workspaces/): each addon is a
+member, and the `dev` dependency group adds Odoo and the tools. Then:
+
+```sh
+uv sync                  # .venv with Odoo, each addon as an editable package, ruff and ty
+uvx ty@0.0.63 check      # ty reads .venv, also for odoo.addons.*
+.venv/bin/odoo -d <database> -i <addon> --stop-after-init
+```
+
+The environment follows the branch, and the repository has no lock: `uv.lock` is
+ignored. Odoo comes from the nightly source archive of the 16.0 branch,
+not from a dated archive or a checksum: this repository follows the tip of its
+series (odoo-oci, PR18), and a project keeps the exact pins. So two runs of CI can
+use different builds of Odoo; `.venv/bin/odoo --version` names the one of a run.
+Odoo puts its core addons into the package only in its source archives: a package
+built from Git has no data files for the addons outside `odoo/addons`, so Odoo cannot
+install `web` from it. Each other addon comes at its latest release on PyPI. A local
+`uv.lock` keeps those versions until you run `uv sync --upgrade`. CI has no lock and
+resolves again on each run. A personal uv setting such as `exclude-newer` also
+applies, so your environment can be older than the one of CI.
+
+The root has no `[tool.uv.sources]` on purpose. When a project takes an addon of
+this repository from Git, uv reads the root of this workspace too, and a source there
+would conflict with the pins of that project, Odoo first. So a package that does not
+come from PyPI is a direct reference in the `git` dependency group at the end of the
+root `pyproject.toml`, which only this repository reads:
+
+```toml
+git = [
+    "odoo-addon-ke_base_thing @ git+https://github.com/kernet-it/kernet-base@16.0#subdirectory=ke_base_thing",
+]
+```
+
+Add an entry when an addon here depends on an addon of another Kernet repository, or
+on an OCA addon that OCA has not published for 16.0. A project that uses
+these addons gives its own source for each such package.
+
+The Kernet repositories are private. uv fetches them with Git, so your Git
+credentials apply. With SSH, rewrite the address once:
+
+```sh
+git config --global url."git@github.com:kernet-it/".insteadOf "https://github.com/kernet-it/"
+```
+
+With the GitHub CLI, `gh auth setup-git` is enough. A CI job that syncs this
+environment needs a token of the Kernet CI App for that one step only, given as
+`GIT_CONFIG_*` variables that rewrite the same address to
+`https://x-access-token:<token>@github.com/kernet-it/`, so that the token is in no
+file and in no cache.
 
 ## Releasing addon changes
 
@@ -52,7 +178,8 @@ the consuming project separately.
 check, the ordinary pre-commit gate (rstcheck, ruff, pylint-odoo, eslint, prettier
 and hygiene hooks), and the manual-stage ty hook. CI runs ty against a `.venv` built
 from every addon's `[tool.kernet.dependencies]` — an import ty can't resolve there is
-an undeclared dependency. Install-and-test of the addons is intentionally disabled
+an undeclared dependency. The environment of `uv sync` above does not replace it in
+CI yet. Install-and-test of the addons is intentionally disabled
 for now; pushed code is assumed developer-tested.
 
 ## Tooling
