@@ -47,6 +47,8 @@ root = ["."]
 [analysis]
 allowed-unresolved-imports = [
   "odoo.addons.**",
+  # lxml-stubs, which the checking environment installs, has no stub for it.
+  "lxml.builder",
 ]
 
 [src]
