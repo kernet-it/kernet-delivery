@@ -22,6 +22,17 @@ repos:
         entry: found an en.po file
         language: fail
         files: '[a-zA-Z0-9_]*/i18n/en\.po$'
+      - id: addon-pyproject
+        name: addon pyproject.toml (whool package metadata)
+        # Checks all addons and runs on each change: pre-commit passes no deleted
+        # file, and a removed addon changes the sources of the addons that depend on
+        # it. The fix is the same script with --write. Keep the tomlkit pin equal to
+        # the inline metadata of the script.
+        entry: python .github/scripts/addon_pyproject.py
+        language: python
+        additional_dependencies: ["tomlkit==0.15.1"]
+        always_run: true
+        pass_filenames: false
       - id: ty
         name: ty (type check)
         # NOT the official ty-pre-commit hook: its `uv check` runs with the
@@ -35,7 +46,7 @@ repos:
         stages: [manual]
         types: [python]
         require_serial: true
-        exclude: ^\.github/actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)\.py$
+        exclude: ^\.github/(actions/(addon-release/check_addon_releases|typecheck-environment/typecheck_environment)|scripts/addon_pyproject)\.py$
       - id: prettier
         name: prettier (check)
         # mirrors-prettier hardcodes --write, so run locally in check mode. The XML
