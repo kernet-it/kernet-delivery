@@ -23,9 +23,19 @@ dev = [
     # wheel built from Git has their Python files outside odoo/addons and none of
     # their data, so Odoo cannot install `web` and ty cannot resolve its imports.
     "odoo @ https://nightly.odoo.com/20.0/nightly/src/odoo_20.0.latest.tar.gz",
+    # The pin of the requirements.txt of Odoo 20.0 for Python 3.12; its setup.py
+    # does not bound it. PyPDF2 3 removed the API that Odoo uses, so installing
+    # sale_pdf_quote_builder fails with a DeprecationError on `isEncrypted`.
+    "PyPDF2==2.12.1",
     # A test requirement of Odoo that its package does not install; Odoo 18.0 and later
     # import it in odoo.tests.common, so `--test-enable` fails without it.
     "freezegun",
+    # Odoo drives Chrome through it in browser and JavaScript tests (HttpCase), and
+    # skips each such test with a warning when it is missing.
+    "websocket-client",
+    # The stubs that the typecheck-environment action of kernet-ci v4 installs for CI,
+    # so that ty resolves `from lxml import etree` here as it does in CI.
+    "lxml-stubs==0.5.1",
     # The same versions as the hooks of .pre-commit-config.yaml.
     "ruff==0.16.0",
     "ty==0.0.63",
