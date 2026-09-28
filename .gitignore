@@ -2,6 +2,11 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv
+# The environment follows the branch tips; see pyproject.toml.
+uv.lock
+/dist/
+# whool builds the editable package of each addon in <addon>/build/ on `uv sync`.
+/*/build/
 .ruff_cache/
 .pytest_cache/
 *.log
