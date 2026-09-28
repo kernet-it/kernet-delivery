@@ -8,8 +8,9 @@ Each addon is a Python package that whool builds from its manifest: the version,
 Odoo dependency, the addon dependencies and the Python dependencies come from
 `__manifest__.py` when the package is built. This script owns the static rest: in
 each `<addon>/pyproject.toml` the tables `[build-system]`, `[project]` and
-`[tool.uv.sources]` and the key `[tool.whool] odoo_series_override`, and in the root
-`pyproject.toml` the list `[tool.uv.workspace] members`. It edits TOML with tomlkit,
+`[tool.uv.sources]` and the keys `[tool.uv] package` and `[tool.whool]
+odoo_series_override`, and in the root `pyproject.toml` the list
+`[tool.uv.workspace] members`. It edits TOML with tomlkit,
 so every other table, key and comment stays as it is.
 
     uv run --script .github/scripts/addon_pyproject.py          # check
@@ -60,6 +61,14 @@ LEGACY_VERSION = re.compile(r"[0-9]+\.[0-9]+(\.[0-9]+)?")
 DEFAULT_VERSION = "1.0"
 WHOOL_VERSION_PARTS = 5
 OVERRIDE = "odoo_series_override"
+# `uv sync` installs a workspace member as an editable package. The editable build of
+# whool links `<addon>/build/__editable__/odoo/addons/<addon>` back to the addon, and
+# Odoo follows that link without end when it scans the files of the addon, for
+# example for the JavaScript bundles before the browser tests. So `uv sync` installs
+# only the dependencies of each addon, and Odoo takes the addons from the checkout
+# (`--addons-path=.`). uv reads the key only in this workspace: a project that takes
+# the addon from Git installs it.
+PACKAGE = "package"
 ANSWERS = ".copier-answers.yml"
 
 
@@ -111,6 +120,7 @@ def managed_tables(
     # the root dependency groups, which nothing outside this repository reads.
     depends = sorted(set(manifest.get("depends", [])) & siblings)
     tables["sources"] = {f"odoo-addon-{name}": {"workspace": True} for name in depends}
+    tables[PACKAGE] = False
     tables[OVERRIDE] = f"{series}.0" if override else None
     return tables
 
@@ -121,18 +131,33 @@ def current_tables(document: tomlkit.TOMLDocument) -> dict[str, Any]:
         "build-system": data.get("build-system"),
         "project": data.get("project"),
         "sources": data.get("tool", {}).get("uv", {}).get("sources", {}),
+        PACKAGE: data.get("tool", {}).get("uv", {}).get(PACKAGE),
         OVERRIDE: data.get("tool", {}).get("whool", {}).get(OVERRIDE),
     }
 
 
-def sources_text(names: list[str]) -> str:
+def sources_table(names: list[str]) -> Table:
     sources = tomlkit.table()
     for name in names:
         source = tomlkit.inline_table()
         source["workspace"] = True
         sources[name] = source
+    return sources
+
+
+def sources_text(names: list[str]) -> str:
     document = tomlkit.document()
-    document["tool"] = {"uv": {"sources": sources}}
+    document["tool"] = {"uv": {"sources": sources_table(names)}}
+    return tomlkit.dumps(document)
+
+
+def uv_text(names: list[str]) -> str:
+    uv = tomlkit.table()
+    uv[PACKAGE] = False
+    if names:
+        uv["sources"] = sources_table(names)
+    document = tomlkit.document()
+    document["tool"] = {"uv": uv}
     return tomlkit.dumps(document)
 
 
@@ -261,14 +286,37 @@ def apply_tables(
     set_table(document, "project", wanted["project"])
     if current_tables(document)[OVERRIDE] != wanted[OVERRIDE]:
         document = apply_override(document, wanted[OVERRIDE])
-    current = document.unwrap().get("tool", {}).get("uv", {}).get("sources")
-    if current == (wanted["sources"] or None):
+    uv = document.unwrap().get("tool", {}).get("uv", {})
+    current = uv.get("sources")
+    stale_sources = current != (wanted["sources"] or None)
+    if not stale_sources and uv.get(PACKAGE) is False:
         return document
-    if current is not None:
+    if stale_sources and current is not None:
         document = remove_table(document, "tool", "uv", "sources")
-    if wanted["sources"]:
+    if "uv" not in document.get("tool", {}):
+        return append_text(document, uv_text(sorted(wanted["sources"])))
+    if uv.get(PACKAGE) is not False:
+        document = apply_package(document)
+    if stale_sources and wanted["sources"]:
         document = append_text(document, sources_text(sorted(wanted["sources"])))
     return document
+
+
+def apply_package(document: tomlkit.TOMLDocument) -> tomlkit.TOMLDocument:
+    """Set the package key, and leave every other key and comment of [tool.uv]."""
+    uv = document["tool"]["uv"]
+    if PACKAGE in uv:
+        uv[PACKAGE] = False
+        return document
+    if isinstance(uv, Table) and not uv.is_super_table():
+        trailing = trailing_trivia(uv)
+        uv[PACKAGE] = False
+        for item in trailing:
+            uv.add(item)
+        return document
+    # Only subtables such as [tool.uv.sources] define it: a [tool.uv] after them
+    # is valid TOML and leaves them as they are.
+    return append_text(document, f"[tool.uv]\n{PACKAGE} = false\n")
 
 
 def unsupported(manifest: dict, branch: int | None) -> str:

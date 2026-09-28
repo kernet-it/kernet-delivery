@@ -96,10 +96,27 @@ it is a release of the addon.
 member, and the `dev` dependency group adds Odoo and the tools. Then:
 
 ```sh
-uv sync                  # .venv with Odoo, each addon as an editable package, ruff and ty
+uv sync                  # .venv with Odoo, the dependencies of each addon, ruff and ty
 uvx ty@0.0.63 check      # ty reads .venv, also for odoo.addons.*
-.venv/bin/odoo -d <database> -i <addon> --stop-after-init
+.venv/bin/odoo --addons-path=. -d <database> -i <addon> --stop-after-init
+.venv/bin/odoo --addons-path=. -d <database> -u <addon> --test-enable \
+  --test-tags=/<addon> --stop-after-init
 ```
+
+`uv sync` installs the dependencies of each addon, but not the addon:
+`[tool.uv] package = false` in `<addon>/pyproject.toml` says so, and a project that
+takes the addon from Git still installs it. Odoo takes the addons from the checkout,
+so give it `--addons-path=.`. An editable install would not do: the editable build of
+whool links `<addon>/build/__editable__/odoo/addons/<addon>` back to the addon, and
+Odoo follows that link without end when it scans the files of the addon, for example
+for the JavaScript bundles before the browser tests ("Failed to initialize
+database"). A checkout that `uv sync` made with an earlier template still has these
+links: delete them once with `rm -rf */build`.
+
+ty resolves `odoo.addons.*` only for the addons in the Odoo package: Odoo adds the other
+addons to that namespace at run time, which ty does not follow, so `ty.toml` lets
+`odoo.addons.**` stay unresolved, and ty does not report a misspelled import of an
+addon of this repository or of another one.
 
 The environment follows the branch, and the repository has no lock: `uv.lock` is
 ignored. Odoo comes from the nightly source archive of the 16.0 branch,
