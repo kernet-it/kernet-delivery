@@ -1,6 +1,12 @@
 name: addon-release
-description: Require a version increase and matching changelog for changed Odoo addons.
+description: >-
+  Check the release fragments of a pull request before kbot prepares its release, and
+  the version increase and matching changelog of changed Odoo addons after.
 inputs:
+  phase:
+    description: "auto selects the phase from the event; pull-request checks fragments, integrated checks merged metadata."
+    default: auto
+    required: false
   layout:
     description: "Repository layout: addon-group or project."
     required: true
@@ -22,14 +28,23 @@ runs:
     - name: Validate addon release metadata
       shell: bash
       env:
+        ADDON_RELEASE_PHASE: ${{ inputs.phase }}
         ADDON_RELEASE_BASE: ${{ inputs.base }}
         ADDON_RELEASE_HEAD: ${{ inputs.head }}
         ADDON_RELEASE_LAYOUT: ${{ inputs.layout }}
         ADDON_RELEASE_SERIES: ${{ inputs.odoo-series }}
-      run: >-
-        python3 "$GITHUB_ACTION_PATH/check_addon_releases.py"
-        --repository "$GITHUB_WORKSPACE"
-        --layout "$ADDON_RELEASE_LAYOUT"
-        --base "$ADDON_RELEASE_BASE"
-        --head "$ADDON_RELEASE_HEAD"
-        --series "$ADDON_RELEASE_SERIES"
+      run: |
+        if [ "$ADDON_RELEASE_PHASE" = auto ]; then
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            ADDON_RELEASE_PHASE=pull-request
+          else
+            ADDON_RELEASE_PHASE=integrated
+          fi
+        fi
+        python3 "$GITHUB_ACTION_PATH/check_addon_releases.py" \
+          --repository "$GITHUB_WORKSPACE" \
+          --phase "$ADDON_RELEASE_PHASE" \
+          --layout "$ADDON_RELEASE_LAYOUT" \
+          --base "$ADDON_RELEASE_BASE" \
+          --head "$ADDON_RELEASE_HEAD" \
+          --series "$ADDON_RELEASE_SERIES"
