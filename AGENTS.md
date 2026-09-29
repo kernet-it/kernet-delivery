@@ -17,7 +17,8 @@ minimum configuration and first steps. Put detailed workflows in
 `docs/functional/` and architecture, extension points, integrations and upgrade
 requirements in `docs/technical/`, relative to the repository or addon concerned.
 Use Markdown for detailed documentation and RST for addon READMEs. Keep
-`readme/HISTORY.rst` for release history.
+`readme/HISTORY.rst` for release history; kbot generates it from the
+fragments in `readme/newsfragments/`.
 
 Each fact has one authoritative home; link to it instead of copying it. Update
 affected documentation with the behavior it describes. Add only useful pages;
@@ -58,5 +59,7 @@ or change a `depends`, run `uv run --script .github/scripts/addon_pyproject.py -
 not edit the tables that it owns. `uv sync` gives the environment in which Odoo runs
 these addons and ty checks them.
 
-A functional addon change increases the manifest version and adds the same version
-at the top of `readme/HISTORY.rst`.
+Do not change manifest versions or existing `readme/HISTORY.rst` files. For each
+functional change, add a Spanish fragment to `readme/newsfragments/` of each addon
+that it changes, also when the addon already has a fragment in the pull request.
+A maintainer releases the pull request with an `@kbot merge` comment.

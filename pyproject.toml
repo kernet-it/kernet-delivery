@@ -27,9 +27,19 @@ dev = [
     # pkg_resources, and newer lxml has no lxml.html.clean.
     "setuptools<81",
     "lxml-html-clean",
+    # The pin of the requirements.txt of Odoo 18.0 for Python 3.10; its setup.py
+    # does not bound it. PyPDF2 3 removed the API that Odoo uses, so installing
+    # sale_pdf_quote_builder fails with a DeprecationError on `isEncrypted`.
+    "PyPDF2==1.26.0",
     # A test requirement of Odoo that its package does not install; Odoo 18.0 and later
     # import it in odoo.tests.common, so `--test-enable` fails without it.
     "freezegun",
+    # Odoo drives Chrome through it in browser and JavaScript tests (HttpCase), and
+    # skips each such test with a warning when it is missing.
+    "websocket-client",
+    # The stubs that the typecheck-environment action of kernet-ci v4 installs for CI,
+    # so that ty resolves `from lxml import etree` here as it does in CI.
+    "lxml-stubs==0.5.1",
     # The same versions as the hooks of .pre-commit-config.yaml.
     "ruff==0.16.0",
     "ty==0.0.63",
