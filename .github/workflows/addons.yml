@@ -1,10 +1,15 @@
 name: addons
 
-# Vendored copy of the kernet-ci@v3 check job
+# Vendored copy of the kernet-ci@v4 check job
 # .github/workflows/addons.yml, rendered only when standalone_ci: this repo
 # is PUBLIC and GitHub forbids public repos from calling reusable workflows
 # that live in private repos. ci.yml calls this local copy with the same
 # caller shape, so the required "ci / check" context is unchanged.
+# The private job runs kbot's release validation from a private image. Before
+# the kbot release commit, this copy checks only the format of new release
+# fragments, and it does not lint the metadata that kbot will write. Kbot checks
+# the release rules at plan and merge time and gates the merge with the required
+# kbot/release status.
 # KEEP IN SYNC: align this job and the typecheck-environment action with the
 # kernet-ci release used by private addon repositories.
 
@@ -47,6 +52,7 @@ jobs:
         uses: $/.github/actions/addon-release
         with:
           layout: addon-group
+          phase: ${{ github.event_name == 'pull_request' && 'pull-request' || 'integrated' }}
           odoo-series: ${{ steps.odoo.outputs.version }}
           base: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
           head: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha || github.sha }}
