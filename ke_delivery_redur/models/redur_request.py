@@ -51,10 +51,11 @@ class RedurRequest:
         try:
             res.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            error_message = _("%(error)s\n%(message)s") % {
-                "error": str(e),
-                "message": res.json().get("Message", "") if res.text else "",
-            }
+            error_message = _(
+                "%(error)s\n%(message)s",
+                error=str(e),
+                message=res.json().get("Message", "") if res.text else "",
+            )
             raise UserError(error_message) from None
         return res
 
