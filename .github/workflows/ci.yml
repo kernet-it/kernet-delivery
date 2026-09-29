@@ -4,13 +4,15 @@ on:
   push:
     branches: ["*.0"] # branch-per-version: 16.0, 17.0, ...
   pull_request:
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [opened, synchronize, reopened, ready_for_review, edited]
   merge_group:
     types: [checks_requested]
   workflow_dispatch:
 
+# An edit of the text of a PR runs CI again, but must not cancel the run of a push,
+# whose `test` can take most of an hour: an edit has a group of its own.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}${{ github.event.action == 'edited' && '-edited' || '' }}
 
   cancel-in-progress: true
 

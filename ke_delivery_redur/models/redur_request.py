@@ -39,21 +39,23 @@ class RedurRequest:
                 res = requests.get(url=url, headers=headers, timeout=60)
             elif request_type == "POST":
                 res = requests.post(url=url, json=data, headers=headers, timeout=60)
-                _logger.info("POST request sent to REDUR (%s) with data: %s", url, data)
+                _logger.info("POST request sent to REDUR (%s)", url)
             else:
                 raise UserError(
                     _("Unsupported request type, please only use 'GET' or 'POST'")
                 )
-            res.raise_for_status()
         except requests.exceptions.Timeout:
             raise UserError(_("Timeout: the server did not reply within 60s")) from None
         except (ValueError, requests.exceptions.ConnectionError):
             raise UserError(_("Server not reachable, please try again later")) from None
+        try:
+            res.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            error_message = _("%(error)s\n%(message)s") % {
-                "error": str(e),
-                "message": res.json().get("Message", "") if res.text else "",
-            }
+            error_message = _(
+                "%(error)s\n%(message)s",
+                error=str(e),
+                message=res.json().get("Message", "") if res.text else "",
+            )
             raise UserError(error_message) from None
         return res
 

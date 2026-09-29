@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate release metadata for addons changed between two Git revisions."""
+"""Validate release metadata for addons changed between two Git revisions.
+
+The integrated phase (push, merge queue, and a pull request that kbot prepared)
+requires a version increase and a matching changelog. Before kbot prepares a
+release, the pull-request phase checks only the format of new release fragments:
+kbot checks the release rules at plan and merge time, and publishes the required
+``kbot/release`` status.
+"""
 
 from __future__ import annotations
 
@@ -16,8 +23,17 @@ from pathlib import Path, PurePosixPath
 
 MANIFEST = "__manifest__.py"
 HISTORY = PurePosixPath("readme/HISTORY.rst")
+FRAGMENTS = PurePosixPath("readme/newsfragments")
+FRAGMENT_PLACEHOLDERS = {"README.rst", "README.md", ".gitkeep"}
+FRAGMENT_NAME_RE = re.compile(
+    r"[a-zA-Z0-9][a-zA-Z0-9_-]*\.(feature|bugfix|removal|misc)(?:\.rst)?$"
+)
+MAX_FRAGMENT_BYTES = 16_384
+RELEASE_MARKER = "Kbot-Release: "
 ZERO_SHA = "0" * 40
 NON_RELEASE_DIRECTORIES = {"doc", "docs", "readme", "tests"}
+# Kbot merges agent instruction changes with nobump, so they need no release.
+AGENT_INSTRUCTIONS = {"agents.md", "claude.md"}
 COPIER_METADATA = {
     ".copier-answers.yaml",
     ".copier-answers.yml",
@@ -98,6 +114,15 @@ class GitRepository:
         if result.returncode:
             return None
         return result.stdout.decode("utf-8", "surrogateescape")
+
+    def is_regular_file(self, revision: str, path: PurePosixPath) -> bool:
+        entry = self._run("ls-tree", revision, "--", path.as_posix()).stdout
+        return entry.startswith((b"100644 blob ", b"100755 blob "))
+
+    def message(self, revision: str) -> str:
+        return self._run("show", "-s", "--format=%B", revision).stdout.decode(
+            "utf-8", "replace"
+        )
 
     def changes(self, base: str, head: str) -> GitChanges:
         payload = self._run(
@@ -290,7 +315,7 @@ def release_relevant(path: PurePosixPath) -> bool:
         and path.parts[1].lower() == "description"
     ):
         return False
-    if first_lower in COPIER_METADATA:
+    if first_lower in COPIER_METADATA or first_lower in AGENT_INSTRUCTIONS:
         return False
     return not first_lower.startswith("readme")
 
@@ -435,6 +460,21 @@ def write_summary(checked: list[AddonRelease], issues: list[Issue]) -> None:
         )
     else:
         lines.append("No release-relevant addon changes.")
+    with open(summary_path, "a", encoding="utf-8") as stream:
+        stream.write("\n".join(lines) + "\n")
+
+
+def write_fragment_summary(issues: list[Issue]) -> None:
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+    lines = ["### Addon release fragments", ""]
+    if issues:
+        lines.append(f"Failed with {len(issues)} error(s).")
+        lines.append("")
+        lines.extend(f"- {summary_escape(issue.message)}" for issue in issues)
+    else:
+        lines.append("Valid. Kbot checks the release when it plans and prepares it.")
     with open(summary_path, "a", encoding="utf-8") as stream:
         stream.write("\n".join(lines) + "\n")
 
@@ -591,6 +631,45 @@ def check_releases(
     return checked, issues
 
 
+def check_fragments(
+    repository: GitRepository, *, base: str, head: str, layout: str
+) -> list[Issue]:
+    """Check the format of the release fragments that a pull request adds.
+
+    A fragment that the base already holds unchanged belongs to a pull request below
+    in a stack, which releases it.
+    """
+    base_files = repository.files(base)
+    head_files = repository.files(head)
+    changed_paths = repository.changes(base, head).paths
+    fragment_dirs = {root / FRAGMENTS for root in addon_roots(head_files, layout)}
+    issues: list[Issue] = []
+    for path in sorted(head_files, key=str):
+        if (
+            path.parent not in fragment_dirs
+            or path.name in FRAGMENT_PLACEHOLDERS
+            or path not in changed_paths
+        ):
+            continue
+        if not FRAGMENT_NAME_RE.fullmatch(path.name):
+            issues.append(Issue(path, f"Invalid fragment filename: {path}"))
+        elif path in base_files:
+            issues.append(Issue(path, f"Only new fragments may be consumed: {path}"))
+        elif not repository.is_regular_file(head, path):
+            issues.append(Issue(path, f"Expected a regular file: {path}"))
+        else:
+            text = repository.read(head, path) or ""
+            if not text.strip() or len(text.encode()) > MAX_FRAGMENT_BYTES:
+                issues.append(
+                    Issue(
+                        path,
+                        "Fragment must be nonempty and at most "
+                        f"{MAX_FRAGMENT_BYTES} bytes: {path}",
+                    )
+                )
+    return issues
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repository", type=Path, default=Path.cwd())
@@ -598,6 +677,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--base", default="")
     parser.add_argument("--head", default="HEAD")
     parser.add_argument("--series", default="")
+    parser.add_argument(
+        "--phase", choices=("pull-request", "integrated"), default="integrated"
+    )
     return parser.parse_args(argv)
 
 
@@ -617,7 +699,26 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
+    prepared = any(
+        line.startswith(RELEASE_MARKER)
+        for line in repository.message(args.head).splitlines()
+    )
     try:
+        if args.phase == "pull-request" and not prepared:
+            issues = check_fragments(
+                repository, base=args.base, head=args.head, layout=args.layout
+            )
+            for issue in issues:
+                emit_issue(issue)
+            write_fragment_summary(issues)
+            if issues:
+                print(
+                    f"Release fragment check failed with {len(issues)} error(s).",
+                    file=sys.stderr,
+                )
+                return 1
+            print("Release fragments valid; kbot checks the release at plan time.")
+            return 0
         checked, issues = check_releases(
             repository,
             base=args.base,
