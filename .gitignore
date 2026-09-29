@@ -5,6 +5,8 @@ __pycache__/
 # The environment follows the branch tips; see pyproject.toml.
 uv.lock
 /dist/
+# An editable install of an addon, such as `pip install -e`, makes whool write <addon>/build/.
+/*/build/
 .ruff_cache/
 .pytest_cache/
 *.log
