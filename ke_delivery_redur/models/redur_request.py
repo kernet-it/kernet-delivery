@@ -44,11 +44,12 @@ class RedurRequest:
                 raise UserError(
                     _("Unsupported request type, please only use 'GET' or 'POST'")
                 )
-            res.raise_for_status()
         except requests.exceptions.Timeout:
             raise UserError(_("Timeout: the server did not reply within 60s")) from None
         except (ValueError, requests.exceptions.ConnectionError):
             raise UserError(_("Server not reachable, please try again later")) from None
+        try:
+            res.raise_for_status()
         except requests.exceptions.HTTPError as e:
             error_message = _("%(error)s\n%(message)s") % {
                 "error": str(e),
