@@ -1,0 +1,11 @@
+[build-system]
+requires = ["whool"]
+build-backend = "whool.buildapi"
+
+[project]
+name = "odoo-addon-ke_delivery_redur"
+requires-python = ">=3.10"
+dynamic = ["version", "dependencies", "description", "readme", "license", "authors", "classifiers", "urls"]
+
+[tool.uv]
+package = false

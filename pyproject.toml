@@ -1,0 +1,60 @@
+# The development environment of this repository: `uv sync` makes a `.venv` in which
+# Odoo runs these addons and the tools check them. Each addon is a workspace member
+# that whool builds from its manifest (`<addon>/pyproject.toml`). No lock is
+# committed: each resolution takes Odoo from the 17.0 branch and each other
+# addon at its latest release, so CI sees an upstream change early (odoo-oci, PR18).
+# So CI is not reproducible on purpose; `odoo --version` names the nightly it used.
+[tool.uv.workspace]
+# .github/scripts/addon_pyproject.py writes the list of addons, and the gate checks it.
+members = [
+    "ke_delivery_redur",
+]
+
+[tool.uv]
+package = false
+
+# A project that takes an addon of this repository from Git reads the addon's
+# pyproject.toml, and uv also applies the [tool.uv.sources] of this file to it. A
+# source here would then fight the pins of that project, so every package that does
+# not come from PyPI is a direct reference in a dependency group, which only this
+# repository reads.
+[dependency-groups]
+dev = [
+    # The nightly source archive of the branch, and not a Git source: Odoo packages
+    # the addons of its top-level addons/ directory only in its release archives. A
+    # wheel built from Git has their Python files outside odoo/addons and none of
+    # their data, so Odoo cannot install `web` and ty cannot resolve its imports.
+    "odoo @ https://nightly.odoo.com/17.0/nightly/src/odoo_17.0.latest.tar.gz",
+    # The setup.py of Odoo 17.0 bounds neither: newer setuptools has no
+    # pkg_resources, and newer lxml has no lxml.html.clean.
+    "setuptools<81",
+    "lxml-html-clean",
+    # The pin of the requirements.txt of Odoo 17.0 for Python 3.10; its setup.py
+    # does not bound it. PyPDF2 3 removed the API that Odoo uses, so installing
+    # sale_pdf_quote_builder fails with a DeprecationError on `isEncrypted`.
+    "PyPDF2==1.26.0",
+    # A test requirement of Odoo that its package does not install; Odoo 18.0 and later
+    # import it in odoo.tests.common, so `--test-enable` fails without it.
+    "freezegun",
+    # Odoo drives Chrome through it in browser and JavaScript tests (HttpCase), and
+    # skips each such test with a warning when it is missing.
+    "websocket-client",
+    # The stubs that the typecheck-environment action of kernet-ci v4 installs for CI,
+    # so that ty resolves `from lxml import etree` here as it does in CI.
+    "lxml-stubs==0.5.1",
+    # The same versions as the hooks of .pre-commit-config.yaml.
+    "ruff==0.16.0",
+    "ty==0.0.63",
+    { include-group = "git" },
+]
+# The template writes nothing below this line. List in `git` each addon that an addon
+# here depends on and that has no release on PyPI for 17.0: an addon of another
+# Kernet repository, or an OCA addon before OCA publishes the series. For example:
+#   "odoo-addon-ke_base_thing @ git+https://github.com/kernet-it/kernet-base@17.0#subdirectory=ke_base_thing",
+git = [
+    # OCA addons come from the public OCA repository at the series branch, not from
+    # PyPI, so the environment sees the same code as a project that takes them from Git.
+    "odoo-addon-base_iso3166 @ git+https://github.com/OCA/community-data-files@17.0#subdirectory=base_iso3166",
+    "odoo-addon-delivery_package_number @ git+https://github.com/OCA/delivery-carrier@17.0#subdirectory=delivery_package_number",
+    "odoo-addon-delivery_state @ git+https://github.com/OCA/delivery-carrier@17.0#subdirectory=delivery_state",
+]

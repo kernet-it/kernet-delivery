@@ -47,6 +47,8 @@ root = ["."]
 [analysis]
 allowed-unresolved-imports = [
   "odoo.addons.**",
+  # lxml-stubs, which the checking environment installs, has no stub for it.
+  "lxml.builder",
 ]
 
 [src]
@@ -54,6 +56,8 @@ exclude = [
   "**/__pycache__/**",
   ".github/actions/addon-release/check_addon_releases.py",
   ".github/actions/typecheck-environment/typecheck_environment.py",
+  # Its dependency lives in its own script environment; the template checks it there.
+  ".github/scripts/addon_pyproject.py",
   ".venv/**",
   "node_modules/**",
 ]
