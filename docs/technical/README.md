@@ -277,14 +277,33 @@ See [kbot `docs/kbot.md`](https://github.com/kernet-it/kbot/blob/main/docs/kbot.
 ### Enrollment
 
 Kbot serves this public repository through the private `kernet-it/kbot-relay`
-repository, only after an operator enrolls it: the relay forwarder
-`.github/workflows/kbot.yml` with its App secrets, the SQLite journal, the
-`Require kbot release preparation` ruleset and the relay target. Before enrollment,
-commands get no answer. Enroll a new version branch before its first release, and do
-not merge addon changes before enrollment: CI accepts their fragments, but nothing
-prepares the release, and kbot cannot consume fragments that are already on the target
-branch. The procedure is in the README of `kernet-it/kbot-relay` and in
-[kbot `docs/kbot.md`](https://github.com/kernet-it/kbot/blob/main/docs/kbot.md).
+repository, with the same commands, runners and journal as a private repository.
+`.github/workflows/kbot.yml` is the relay forwarder. For a new `@kbot` comment by a
+member or collaborator, for a completed `ci` run of a pull request from this
+repository, and for a manual run on the default branch, it runs on a GitHub-hosted
+runner, checks out nothing and starts the relay with the name of this repository. The
+coordinator logs stay in the relay.
+
+Kbot serves this repository only after an operator enrolls it: the Actions hardening of
+a public repository, the relay App secrets `KBOT_RELAY_APP_ID` and
+`KBOT_RELAY_PRIVATE_KEY`, the SQLite journal, the `Require kbot release preparation`
+ruleset, the kbot App in the push restrictions, and the relay target in
+`KBOT_RELAY_TARGETS`. Before enrollment, commands get no answer, and without the relay
+secrets the forwarder run of a command fails when it creates the token. Enroll a new
+version branch before its first release, and do not merge addon changes before
+enrollment: CI accepts their fragments, but nothing prepares the release, and kbot
+cannot consume fragments that are already on the target branch. Enrollment never
+initializes or replaces an existing journal. The procedure is in
+[kbot `docs/kbot.md`](https://github.com/kernet-it/kbot/blob/main/docs/kbot.md#public-repositories)
+and in the README of `kernet-it/kbot-relay`.
+
+Every version branch contains `.github/workflows/kbot.yml`. Only the copy on the
+default branch operates: GitHub starts comment workflows only from the default branch,
+and the forwarder skips manual runs on other branches. Disabling the forwarder stops
+kbot. This repository has no emergency workflow: emergency preparation runs
+`relay-emergency.yml` in `kernet-it/kbot-relay`, as
+[kbot `docs/kbot-recovery.md`](https://github.com/kernet-it/kbot/blob/main/docs/kbot-recovery.md#public-repositories)
+describes.
 
 ## How these addons reach production
 
