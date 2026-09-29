@@ -3,6 +3,7 @@
 {
     "name": "Delivery Redur",
     "author": "Kernet",
+    "maintainers": ["aaladro-kernet"],
     "website": "https://www.kernet.es",
     "category": "Kernet Delivery",
     "version": "17.0.1.0.1",
@@ -18,5 +19,4 @@
         "views/redur_sender_code_views.xml",
     ],
     "license": "AGPL-3",
-    "installable": True,
 }
