@@ -5,7 +5,7 @@ __pycache__/
 # The environment follows the branch tips; see pyproject.toml.
 uv.lock
 /dist/
-# whool builds the editable package of each addon in <addon>/build/ on `uv sync`.
+# An editable install of an addon, such as `pip install -e`, makes whool write <addon>/build/.
 /*/build/
 .ruff_cache/
 .pytest_cache/
