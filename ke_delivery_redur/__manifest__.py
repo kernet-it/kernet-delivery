@@ -6,7 +6,7 @@
     "maintainers": ["aaladro-kernet"],
     "website": "https://www.kernet.es",
     "category": "Kernet Delivery",
-    "version": "17.0.1.0.1",
+    "version": "17.0.1.0.2",
     "depends": [
         "delivery_package_number",
         "delivery_state",
