@@ -1,0 +1,46 @@
+name: kbot
+
+# Public repo: the kbot runners and the private kernet-ci workflows are out of reach, so
+# this job only wakes the coordinator in the private kernet-it/kbot-relay. It checks out
+# nothing and forwards only the repository name; the coordinator reads the rest from
+# GitHub. kbot writes only while this workflow is active: disabling it is the handover.
+on: # zizmor: ignore[dangerous-triggers] no checkout, no artifact; only the repository name leaves
+  issue_comment:
+    types: [created]
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  forward:
+    # Anyone can comment on a public repo: other authors never reach the App key. kbot
+    # still checks that the author can write.
+    if: >-
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+       github.event.comment.user.type == 'User' && startsWith(github.event.comment.body, '@kbot ') &&
+       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request' &&
+       contains(fromJSON('["success","failure","timed_out"]'), github.event.workflow_run.conclusion) &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/create-github-app-token@fee1f7d63c2ff003460e3d139729b119787bc349 # v2
+        id: relay
+        with:
+          app-id: ${{ secrets.KBOT_RELAY_APP_ID }}
+          private-key: ${{ secrets.KBOT_RELAY_PRIVATE_KEY }}
+          owner: kernet-it
+          repositories: kbot-relay
+          permission-actions: write
+      - name: Wake the coordinator
+        env:
+          GH_TOKEN: ${{ steps.relay.outputs.token }}
+        run: >-
+          gh workflow run relay.yml --repo kernet-it/kbot-relay --ref main
+          --field repository="$GITHUB_REPOSITORY"
