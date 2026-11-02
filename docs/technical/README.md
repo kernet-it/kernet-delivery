@@ -119,17 +119,24 @@ addons to that namespace at run time, which ty does not follow, so `ty.toml` let
 `odoo.addons.**` stay unresolved, and ty does not report a misspelled import of an
 addon of this repository or of another one.
 
-The environment follows the branch, and the repository has no lock: `uv.lock` is
-ignored. Odoo comes from the nightly source archive of the 20.0 branch,
+In CI, the environment follows the branch, and the repository has no lock: `uv.lock`
+is ignored. Odoo comes from the nightly source archive of the 20.0 branch,
 not from a dated archive or a checksum: this repository follows the tip of its
 series (odoo-oci, PR18), and a project keeps the exact pins. So two runs of CI can
 use different builds of Odoo; `.venv/bin/odoo --version` names the one of a run.
 Odoo puts its core addons into the package only in its source archives: a package
 built from Git has no data files for the addons outside `odoo/addons`, so Odoo cannot
 install `web` from it. Each other addon comes at its latest release on PyPI. A local
-`uv.lock` keeps those versions until you run `uv sync --upgrade`. CI has no lock and
-resolves again on each run. A personal uv setting such as `exclude-newer` also
-applies, so your environment can be older than the one of CI.
+`uv.lock` keeps those versions, and it also keeps the SHA-256 of the nightly archive.
+So when the nightly moves, `uv sync` keeps the locked build of Odoo from the uv cache,
+or fails with a hash mismatch for `odoo` when it must download the archive again.
+The uv cache also keeps the nightly archive, and `uv sync` does not always download it
+again: a checkout with no lock, such as a new worktree, can also get the cached build,
+so it is not sufficient to remove `uv.lock`. `uv sync --upgrade-package odoo` takes the
+current nightly and writes its hash to the lock; `uv sync --upgrade` does the same for
+all packages. CI has no lock and resolves again on each run. A personal uv setting
+such as `exclude-newer` also applies, so your environment can be older than the one
+of CI.
 
 The root has no `[tool.uv.sources]` on purpose. When a project takes an addon of
 this repository from Git, uv reads the root of this workspace too, and a source there
@@ -249,8 +256,9 @@ adds a new comment:
   or repository documentation) or only the documentation, tests or agent
   instructions of an addon. Such a pull request needs no fragment; use
   `@kbot merge nobump`. Kbot accepts any level when no addon is affected.
-- `status` shows the recorded phase of the request. `cancel` stops the active
-  request; a release commit that kbot added stays on the pull request.
+- `status` shows the recorded phase of the request. Before merge submission,
+  `cancel` stops the active request; a release commit that kbot added stays on the
+  pull request. A submitted merge keeps its intent until its outcome is confirmed.
 
 Kbot rejects unknown addon names, duplicate overrides and edited comments. To change
 a command, add a new comment. If kbot does not answer, add `@kbot status` again.
@@ -258,14 +266,19 @@ a command, add a new comment. If kbot does not answer, add `@kbot status` again.
 The pull request must be open, ready for review, from a branch of this repository
 and up to date with its target. When an addon needs a release, kbot adds one release
 commit to the original pull request; otherwise it adds no commit. Then CI and the
-required approvals must pass, and kbot merges with GitHub's normal merge commit.
-Kbot does not approve pull requests or bypass rules. If the pull request changes
-`.github/workflows/`, kbot prepares and verifies the release, but a maintainer does
-the final normal merge.
+required approvals must pass. Kbot uses a squash merge when the repository permits
+it, or a merge commit otherwise. Kbot does not approve pull requests or bypass
+quality gates. A workflow-only change can use the App's existing audited branch
+update permission on the unchanged reviewed head; GitHub enforces its permissions
+and merge protections. A workflow change that also needs an addon release remains
+blocked. See the [kbot merge contract](https://github.com/kernet-it/kbot/blob/main/docs/kbot.md)
+before selecting a manual merge route.
 
-Do not push to the pull request while kbot works on it. If the head or the target
-changes after the command, the request stops. Remove the release commit, update the
-branch with its target, resolve conflicts and add a new command.
+Do not push to the pull request while kbot works on it. A head or target change can
+invalidate the prepared request. An unchanged stack rebase can retain approvals
+and the request, but kbot checks the new head, base, CI and review state. Follow the
+[kbot recovery procedure](https://github.com/kernet-it/kbot/blob/main/docs/kbot-recovery.md)
+before removing generated commits or retrying a submitted merge.
 
 Kbot does not support pull requests from forks, merge queues, or promotion pull
 requests that already contain releases, such as a merge of one long-lived branch
