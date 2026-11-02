@@ -17,12 +17,13 @@ on:
   workflow_call:
     inputs:
       odoo_version:
-        description: Odoo version branch override for stacked or feature-branch pull requests.
+        description: Odoo series override; otherwise use the stack base, PR base, or current branch.
         type: string
         default: ""
 
 env:
   ODOO_VERSION_OVERRIDE: ${{ inputs.odoo_version }}
+  ODOO_STACK_BASE_REF: ${{ github.event.pull_request.stack.base.ref }}
 
 jobs:
   check:
@@ -42,7 +43,7 @@ jobs:
         id: odoo
         shell: bash
         run: |
-          version="${ODOO_VERSION_OVERRIDE:-${GITHUB_BASE_REF:-$GITHUB_REF_NAME}}"
+          version="${ODOO_VERSION_OVERRIDE:-${ODOO_STACK_BASE_REF:-${GITHUB_BASE_REF:-$GITHUB_REF_NAME}}}"
           if [[ ! "$version" =~ ^[0-9]+\.0$ ]]; then
             echo "::error title=addons.yml::Odoo version must use NN.0 format"
             exit 1
