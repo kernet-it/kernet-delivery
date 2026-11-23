@@ -331,8 +331,10 @@ check, the ordinary pre-commit gate (rstcheck, ruff, pylint-odoo, eslint, pretti
 and hygiene hooks), and the manual-stage ty hook. CI runs ty against a `.venv` built
 from every addon's `[tool.kernet.dependencies]` — an import ty can't resolve there is
 an undeclared dependency. The environment of `uv sync` above does not replace it in
-CI yet. Install-and-test of the addons is intentionally disabled
-for now; pushed code is assumed developer-tested.
+CI yet.
+
+A public repository cannot call the shared workflow, so its CI does not install and
+test the addons. Run their tests locally before you push.
 
 ## Tooling
 
